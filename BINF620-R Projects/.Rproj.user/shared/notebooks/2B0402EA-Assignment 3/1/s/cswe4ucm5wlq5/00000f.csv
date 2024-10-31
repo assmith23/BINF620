@@ -1,4 +1,0 @@
-"0","BPdata <- read.csv(""BPIntensiveZZ-2-1.csv"")"
-"0","#BPdata <- na.omit(BPdata)"
-"0",""
-"0","#View(BPdata)"

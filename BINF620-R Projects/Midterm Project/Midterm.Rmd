@@ -177,7 +177,7 @@ We will try to predict MH_PPDPR (MH: depress since birth) via methods we have le
   - 5 = NEVER
 
 ```{r import_2, echo=TRUE}
-p2Data <- read.csv("BINF620BigData-1.csv")
+p2Data <- read.csv("PARMSOct2020.csv")
 
 #View(p2Data)
 ```

@@ -1,0 +1,4 @@
+"0","p1Data <- p1Data %>% rename(Event_type = `Reason.of.End.the.Study`)"
+"0","p1Data$Event <- ifelse(p1Data$Event_type == ""DEATH"", 1, 0)"
+"0","p1Data$Gender <- ifelse(p1Data$Gender == ""M"", 0, "
+"0","                      ifelse(p1Data$Gender == ""F"", 1, NA))"

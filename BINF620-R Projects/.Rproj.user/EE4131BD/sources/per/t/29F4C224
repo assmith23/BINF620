@@ -1,0 +1,28 @@
+{
+    "id": "29F4C224",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1729356755775.0,
+    "source_on_save": false,
+    "relative_order": 9,
+    "properties": {
+        "id": "ac6705dd02144fdb834fd2706863c51e",
+        "name": "alive_qda",
+        "title": "alive_qda",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 15762804857307251,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1729356755775,
+    "read_only": false,
+    "read_only_alternatives": []
+}

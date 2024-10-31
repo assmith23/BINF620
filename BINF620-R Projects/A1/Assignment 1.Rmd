@@ -1,0 +1,299 @@
+---
+title: "Assignment 1"
+author: "Manning Smith"
+date: "9/9/2024"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(matrixStats)
+library(knitr)
+library(ggplot2)
+```
+
+# Prompt
+
+1. structure of the data set, including length, data type, names, and the components of the data set.
+
+2. Average Measures for continuous variables, including Mean, Median, Standard deviation, Variance, Median Absolute Variance (deviation), maximum, Minimum, and Sum.
+
+3. Frequency for categorical variables.
+
+4. Plots of summary statistics (such as histograms or bar-plot) for one continuous variable and categorical variable respectively.
+
+# Data Set Information
+- PatientID:  unique patient identifier
+- Age: age in years
+- Sex:  1 = male; 0 = female
+- ChestPain: chest pain type
+- RestBP:  resting blood pressure (in mm Hg on admission to the hospital)
+- Chol: serum cholestoral in mg/dl
+- Fbs: fasting blood sugar > 120 mg/dl (1 = true; 0 = false)
+- RestECG: resting electrocardiographic results. 0: normal ; 1: having ST-T wave abnormality (T wave inversions and/or ST elevation or depression of > 0.05 mV) ;  2: showing probable or definite left ventricular hypertrophy by Estes' criteria.
+- MaxHR: maximum heart rate achieved
+- ExAng: exercise induced angina (1 = yes; 0 = no)
+- Oldpeak: ST depression induced by exercise relative to rest
+- Slope: the slope of the peak exercise ST segment. 1: upsloping; 2: flat; 3: downsloping
+- Ca: number of major vessels (0-3) colored by flourosopy
+- Thal: Thallium stress test, 3 =normal; 6 = fixed (defect); 7 = reversable (defect)
+- AHD (the predicted attribute): angiographic heart disease
+
+\newpage
+# Import Data
+```{r Import, echo=TRUE}
+Heart <- read.csv("Heart.csv")
+
+#View(Heart)
+```
+
+Upon the initial look of the data set it contains information related to patient heart data. Both sex and age are provided. The sex of the patient is provided by (1,0), but information is given that 1 is male and 0 is female. There are some NA values for the 'Ca' variable, but this should not affect the data set. Overall, the data set looks pretty good to proceed with.
+
+\newpage
+# Question 1 | Structure
+
+```{r Structure, echo=TRUE}
+
+# Structure Function
+str(Heart)
+
+# Column names
+cols <- colnames(Heart)
+#print(cols)
+```
+The structure of the data set can be seen above. There are 303 observations and 15 variables, most of the variables are integers, but there is one ID variable, 3 characters variable, and one numerical (meaning there are decimals).\
+
+*Continuous Variables:*\
+`Age`, `RestBP`, `Chol`, `MaxHR`, `OldPeak` \
+
+*Categorical Variables:*\
+`ChestPain`, `RestECG`, `Slope`, `Ca`, `Thal`, `AHD`\
+
+`ChestPain` is a categorical data point with the options of: 'typical', 'asymptomatic', 'nonanginal', and 'nontypical'.\
+
+`Thal` stands for Thallium stress test is also a categorical data point with the options of: 'fixed', 'normal', and 'reversible'.\
+
+`AHD` is a YES/NO binary data point.\
+
+*Binary Variables:*\
+`Sex`, `Fbs`, `ExAng`\
+
+\newpage
+# Question 2 | Summary Statistics
+
+```{r Summary, echo=TRUE}
+# Select all numerical data points
+continuous_vars <- c("Age", "RestBP", "Chol", "MaxHR", "Oldpeak")
+
+# Provide Summary
+#summary(Heart)
+
+# Group all results in a dataframe
+
+summary_stats <- data.frame(
+  Mean = sapply(Heart[continuous_vars], mean, na.rm = TRUE), # Mean
+  Median = sapply(Heart[continuous_vars], median, na.rm = TRUE), # Median
+  Std_Dev = sapply(Heart[continuous_vars], sd, na.rm = TRUE), # Standard deviation
+  Variance = sapply(continuous_vars, function(x) var(Heart[[x]], na.rm = TRUE)), # Variance
+  MAD = sapply(Heart[continuous_vars], mad, na.rm = TRUE), # Median
+  Min = sapply(Heart[continuous_vars], min, na.rm = TRUE), # Minimum
+  Max = sapply(Heart[continuous_vars], max, na.rm = TRUE), # Maximum
+  Sum = sapply(Heart[continuous_vars], sum, na.rm = TRUE) # Sum
+)
+
+# Print Pretty Table
+kable(summary_stats, caption = "Summary Statistics for Continuous Variables", digits = 5)
+```
+
+\newpage
+# Question 3 | Frequency
+
+```{r Frequency, eval=FALSE, include=TRUE, paged.print=TRUE}
+# Select all categorical data points
+categorical_vars <- c("Sex", "ChestPain", "Fbs", "RestECG", "ExAng", "Slope", "Ca", "Thal", "AHD")
+
+freq_tables1 <- lapply(Heart[categorical_vars[1]], table)
+kable(freq_tables1, caption = "Frequency Table for Sex", digits = 2)
+
+freq_tables2 <- lapply(Heart[categorical_vars[2]], table)
+kable(freq_tables2, caption = "Frequency Table for Chest Pain", digits = 2)
+
+freq_tables3 <- lapply(Heart[categorical_vars[3]], table)
+kable(freq_tables3, caption = "Frequency Table for Fasting Blood Sugar", digits = 2)
+
+freq_tables4 <- lapply(Heart[categorical_vars[4]], table)
+kable(freq_tables4, caption = "Frequency Table for Resting Electrocardiographic Result", digits = 2)
+
+freq_tables5 <- lapply(Heart[categorical_vars[5]], table)
+kable(freq_tables5, caption = "Frequency Table for Exercise Induced Angina", digits = 2)
+
+freq_tables6 <- lapply(Heart[categorical_vars[6]], table)
+kable(freq_tables6, caption = "Frequency Table for Slope", digits = 2)
+
+freq_tables7 <- lapply(Heart[categorical_vars[7]], table)
+kable(freq_tables7, caption = "Frequency Table for Number of Vessels", digits = 2)
+
+freq_tables8 <- lapply(Heart[categorical_vars[8]], table)
+kable(freq_tables8, caption = "Frequency Table for Thallium Stress Test", digits = 2)
+
+freq_tables9 <- lapply(Heart[categorical_vars[9]], table)
+kable(freq_tables9, caption = "Frequency Table for AHD", digits = 2)
+```
+
+```{r Frequency1, echo=FALSE, paged.print=TRUE}
+# Select all categorical data points
+categorical_vars <- c("Sex", "ChestPain", "Fbs", "RestECG", "ExAng", "Slope", "Ca", "Thal", "AHD")
+
+freq_tables1 <- lapply(Heart[categorical_vars[1]], table)
+kable(freq_tables1, caption = "Frequency Table for Sex", digits = 2)
+
+freq_tables2 <- lapply(Heart[categorical_vars[2]], table)
+kable(freq_tables2, caption = "Frequency Table for Chest Pain", digits = 2)
+
+freq_tables3 <- lapply(Heart[categorical_vars[3]], table)
+kable(freq_tables3, caption = "Frequency Table for Fasting Blood Sugar", digits = 2)
+
+freq_tables4 <- lapply(Heart[categorical_vars[4]], table)
+kable(freq_tables4, caption = "Frequency Table for Resting Electrocardiographic Result", digits = 2)
+
+freq_tables5 <- lapply(Heart[categorical_vars[5]], table)
+kable(freq_tables5, caption = "Frequency Table for Exercise Induced Angina", digits = 2)
+
+freq_tables6 <- lapply(Heart[categorical_vars[6]], table)
+kable(freq_tables6, caption = "Frequency Table for Slope", digits = 2)
+
+freq_tables7 <- lapply(Heart[categorical_vars[7]], table)
+kable(freq_tables7, caption = "Frequency Table for Number of Vessels", digits = 2)
+
+freq_tables8 <- lapply(Heart[categorical_vars[8]], table)
+kable(freq_tables8, caption = "Frequency Table for Thallium Stress Test", digits = 2)
+
+freq_tables9 <- lapply(Heart[categorical_vars[9]], table)
+kable(freq_tables9, caption = "Frequency Table for AHD", digits = 2)
+```
+
+\newpage
+# Question 4 | Plots
+
+## Continuous
+```{r Plots_1, echo=TRUE, fig.height=8, fig.width=8}
+
+par(mfrow = c(2, 3))
+
+# Age
+#hist(Heart$Age, main = "Histogram of Age", xlab = "Age", col = "lightblue", border = "black")
+boxplot(Heart$Age, main = "Boxplot of Age", col = "lightblue", border = "black", horizontal = FALSE)
+
+# Chol
+#hist(Heart$Chol, main = "Histogram of Cholestoral", xlab = "Cholestoral", col = "lightblue", border = "black")
+boxplot(Heart$Chol, main = "Boxplot of Cholestoral", col = "lightblue", border = "black", horizontal = FALSE)
+
+# RestBP
+#hist(Heart$RestBP, main = "Histogram of Resting Blood Preasure", xlab = "RestBP", col = "lightblue", border = "black")
+boxplot(Heart$RestBP, main = "Boxplot of Resting Blood Preasure", col = "lightblue", border = "black", horizontal = FALSE)
+
+# MaxHR
+#hist(Heart$MaxHR, main = "Histogram of Max Heart Rate", xlab = "MaxHR", col = "lightblue", border = "black")
+boxplot(Heart$MaxHR, main = "Boxplot of Max Heart Rate", col = "lightblue", border = "black", horizontal = FALSE)
+
+
+# Oldpeak
+#hist(Heart$Oldpeak, main = "Histogram of ST Depression", xlab = "Oldpeak", col = "lightblue", border = "black")
+boxplot(Heart$Oldpeak, main = "Boxplot of ST Depression", col = "lightblue", border = "black", horizontal = FALSE)
+```
+
+The `Age` variable is normally distributed between ages 29 and 77 with no apparent outliers.\
+The `Chol` variable is normally distributed with a few outliers on the higher end.\
+The `RestBP` variable is normally distributed with a few outliers on the higher end.\
+The `MaxHR` variable is normally distributed with one outlier on the low end.\
+The `Oldpeak` variable is right skewed with most of the data falling between 0 & 2 with data points as far as 6.\
+
+## Categorical
+```{r Plots_2, echo=TRUE, fig.height=8, fig.width=8}
+
+par(mfrow = c(3, 3))
+
+freq_tables <- lapply(Heart[categorical_vars], table)
+
+plot_bar_chart <- function(variable) {
+  freq_table <- table(Heart[[variable]])
+  barplot(freq_table, main = paste("Bar Chart of", variable), col = "lightblue", border = "black",
+          ylab = "Frequency", las = 2)
+}
+
+# Plot bar charts for each categorical variable
+for (var in categorical_vars)
+  plot_bar_chart(var)
+```
+
+The data set contains twice as many data points for males than females. This could be an issue when using all the data to predict female outcomes. You may only be able to generalize based on the subset gender populations.\
+
+
+
+## Factor by Sex
+```{r Plots_3, echo=TRUE, fig.height=3, fig.width=4}
+
+Heart$Sex <- factor(Heart$Sex, levels = c(0, 1), labels = c("Female", "Male"))
+
+ggplot(Heart, aes(x = ChestPain, fill = Sex)) +
+    geom_bar(position = "dodge") +
+    labs(title = "Bar Chart of Chest Pain by Sex", x = "ChestPain", y = "Frequency") +
+    scale_fill_manual(values = c("Female" = "lightpink", "Male" = "lightblue")) +
+    theme_minimal()
+```
+
+\newpage
+# Personal Exploration
+
+```{r fun1, echo=TRUE, fig.height=3, fig.width=4}
+ggplot(Heart, aes(x = RestBP, y = Age)) +
+  geom_point() +
+  labs(x = "Resting Blod Pressure", y = "Age", title = "Resting BP vs Age") +
+  geom_smooth(method = "lm", se = FALSE)
+
+ggplot(Heart, aes(x = RestBP, y = Chol)) +
+  geom_point() +
+  labs(x = "Resting Blod Pressure", y = "Chol", title = "Resting BP vs Cholestoral") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+```{r fun2, echo=TRUE, fig.height=3, fig.width=4}
+ggplot(Heart, aes(x = RestBP, y = Age, color = Sex)) +
+  geom_point() +
+  labs(x = "Resting Blod Pressure", y = "Age", colored = "Sex", title = "Resting BP vs Age Factored by Sex") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+```{r fun3, echo=TRUE, fig.height=3, fig.width=4}
+ggplot(Heart, aes(x = RestBP, y = MaxHR, color = ChestPain)) +
+  geom_point() +
+  labs(x = "Resting Blod Pressure", y = "Max HR", colored = "Sex", title = "Resting BP vs Age Factored by Sex") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+```{r fun4, echo=TRUE}
+model1_Sex <- lm(RestBP ~ Age * Sex, data = Heart)
+model2_Chol <- lm(RestBP ~ Age * Sex * Chol, data = Heart)
+model3_ChestPain <- lm(RestBP ~ Age * ChestPain, data = Heart)
+model4 <- glm(ExAng ~ RestBP + Sex + Chol, data = Heart, family = binomial)
+model5 <- glm(Sex ~ RestBP + Chol, data = Heart, family = binomial)
+model6 <- glm(Fbs ~ RestBP, data = Heart, family = binomial)
+
+#model1_Sex
+#model2_Chol
+#model3_ChestPain
+summary (model4)
+summary (model5)
+summary (model6)
+```
+
+```{r fun5, echo=TRUE}
+ggplot(Heart, aes(x = Chol, y = Age, color = Sex)) +
+  geom_point() +
+  labs(x = "Cholestoral", y = "Age", colored = "Sex", title = "Cholestoral vs Age Factored by Sex") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+

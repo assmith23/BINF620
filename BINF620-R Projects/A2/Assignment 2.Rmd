@@ -1,0 +1,368 @@
+---
+title: "Assignment 2"
+author: "Manning Smith"
+date: "9/22/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(matrixStats)
+library(ggplot2)
+library(MASS)
+library(caTools)
+library(tinytex)
+```
+
+# Part 1
+
+The C-statistics, or the Area Under the ROC curve,  is the probability that a classifier will be more confident that a randomly chosen positive example is actually positive than that a randomly chosen negative example is positive.
+
+**a) What is the range of the C-statistics (AUC or the area under the ROC curves?**\
+`r "The range is from 0 to 1 for the c-statistic."`
+
+**b) What does mean if C-statistics (AUC)=0.5?**\
+`r "This aligns with that of being a situation of random guessing/random classification, showing no statistical evidence."`
+
+**c) What does mean if C-statistics (AUC)=1?**\
+`r "This align with that of suggesting that there is statistical evidence of perfect classification."`
+
+\newpage
+# Import Data
+```{r Import, echo=TRUE}
+Heart <- read.csv("Heart.csv")
+Heart <- na.omit(Heart)
+Heart$AHD <- ifelse(Heart$AHD == "Yes", 1, 0)
+
+#View(Heart)
+```
+
+### Data Set Information
+- PatientID:  unique patient identifier
+- Age: age in years
+- Sex:  1 = male; 0 = female
+- ChestPain: chest pain type
+- RestBP:  resting blood pressure (in mm Hg on admission to the hospital)
+- Chol: serum cholestoral in mg/dl
+- Fbs: fasting blood sugar > 120 mg/dl (1 = true; 0 = false)
+- RestECG: resting electrocardiographic results. 0: normal ; 1: having ST-T wave abnormality (T wave inversions and/or ST elevation or depression of > 0.05 mV) ;  2: showing probable or definite left ventricular hypertrophy by Estes' criteria.
+- MaxHR: maximum heart rate achieved
+- ExAng: exercise induced angina (1 = yes; 0 = no)
+- Oldpeak: ST depression induced by exercise relative to rest
+- Slope: the slope of the peak exercise ST segment. 1: upsloping; 2: flat; 3: downsloping
+- Ca: number of major vessels (0-3) colored by flourosopy
+- Thal: Thallium stress test, 3 =normal; 6 = fixed (defect); 7 = reversable (defect)
+- AHD (the predicted attribute): angiographic heart disease
+
+\newpage
+# Part 2
+
+This part involves the Heart.csv, with which you worked in assignment #1. Please submit your work with corresponding R/Python codes.
+
+## Question 1
+**We try to predict RestBP (resting blood pressure, in mm Hg on admission to the hospital), using other variables in the data set; i.e; RestBP is the response (outcome) , and other variables are the predictors.**\
+
+```{r Q1, echo=TRUE, fig.height=3, fig.width=6}
+ggplot(Heart, aes(x = Age, y = RestBP)) +
+  geom_point() +
+  labs(x = "Age", y = "Resting Blod Pressure", title = "Resting BP vs Age") +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+### 1a) For each variable, fit a simple linear regression model to predict the response.  Describe your results.  In which of the models is there a statistically significant association between the predictor and the response?
+
+```{r Q1a, echo=TRUE}
+# 1. Simple linear regression with Age
+model_age <- lm(RestBP ~ Age, data = Heart)
+print(summary(model_age))
+
+# 2. Simple linear regression with Sex
+model_sex <- lm(RestBP ~ Sex, data = Heart)
+print(summary(model_sex))
+
+# 3. Simple linear regression with ChestPain
+model_chestpain <- lm(RestBP ~ ChestPain, data = Heart)
+print(summary(model_chestpain))
+
+# 4. Simple linear regression with Chol
+model_chol <- lm(RestBP ~ Chol, data = Heart)
+print(summary(model_chol))
+
+# 5. Simple linear regression with Fbs
+model_fbs <- lm(RestBP ~ Fbs, data = Heart)
+print(summary(model_fbs))
+
+# 6. Simple linear regression with RestECG
+model_restech <- lm(RestBP ~ RestECG, data = Heart)
+print(summary(model_restech))
+
+# 7. Simple linear regression with MaxHR
+model_maxhr <- lm(RestBP ~ MaxHR, data = Heart)
+print(summary(model_maxhr))
+
+# 8. Simple linear regression with ExAng
+model_exang <- lm(RestBP ~ ExAng, data = Heart)
+print(summary(model_exang))
+
+# 9. Simple linear regression with Oldpeak
+model_oldpeak <- lm(RestBP ~ Oldpeak, data = Heart)
+print(summary(model_oldpeak))
+
+# 10. Simple linear regression with Slope
+model_slope <- lm(RestBP ~ Slope, data = Heart)
+print(summary(model_slope))
+
+# 11. Simple linear regression with Ca
+model_ca <- lm(RestBP ~ Ca, data = Heart)
+print(summary(model_ca))
+
+# 12. Simple linear regression with Thal
+model_thal <- lm(RestBP ~ Thal, data = Heart)
+print(summary(model_thal))
+```
+ 
+**RestBP~Age**\
+Age is a significant predictor RestBP, with an estimated increase of 0.57 mm Hg for each additional year of age. The p-value for the age coefficient is highly significant (p < 0.001).
+
+**RestBP~Sex**\
+Sex is not a significant predictor of RestBP (p = 0.254). The R-squared value is extremely low (0.0044), suggesting that there is almost no relationship between sex and RestBP. 
+
+**RestBP~ChestPain**\
+Chest pain type is a weak but significant predictor of RestBP (p = 0.035). Specifically, typical angina is associated with an 8.64 mm Hg increase in RestBP (p = 0.03).
+
+**RestBP~Chol**\
+holesterol (Chol) is a statistically significant predictor of RestBP (p = 0.023), with an estimated increase of 0.0449 mm Hg in RestBP for every 1 mg/dL increase in cholesterol.
+
+**RestBP~Fbs**\
+Fasting blood sugar (Fbs) is a significant predictor of RestBP (p = 0.00175), with an estimated increase of 9.11 mm Hg in RestBP for those with fasting blood sugar > 120 mg/dL.
+
+**RestBP~RestECG**\
+Resting ECG results are a weak but statistically significant predictor of RestBP (p = 0.01). Patients with abnormal RestECG results have an estimated increase of 2.67 mm Hg in RestBP. The R-squared value (2.23%) indicates that RestECG explains very little of the variance.
+
+**RestBP~MaxHR**\
+Maximum heart rate (MaxHR) is not a significant predictor of RestBP (p = 0.399). The R-squared value is extremely low (0.0024), meaning there is no meaningful relationship between MaxHR and RestBP.
+
+**RestBP~ExAng**\
+Exercise-induced angina (ExAng) is not a significant predictor of RestBP (p = 0.252). The R-squared value is low (0.0044), indicating that ExAng does not explain much of the variance in RestBP.
+
+**RestBP~Oldpeak**\
+ST depression induced by exercise (Oldpeak) is a significant predictor of RestBP (p = 0.000924). For each unit increase in Oldpeak, RestBP increases by 2.91 mm Hg.
+
+**RestBP~Slope**\
+The slope of the ST segment is a weak but significant predictor of RestBP (p = 0.0369), with an increase of 3.48 mm Hg for higher slope values.
+
+**RestBP~Ca**\
+The number of major vessels colored by fluoroscopy (Ca) is not a significant predictor of RestBP (p = 0.092), though it approaches significance.
+
+**RestBP~Thal**\
+Thallium stress test results (Thal) are marginally significant overall (p = 0.0386), but none of the specific categories are individually significant (p-values for Thal normal and reversible are both above 0.05).
+
+In conclusion, most variables have weak relationships with RestBP, with low R-squared values across the board. Age, cholesterol, fasting blood sugar, RestECG, Oldpeak, and Slope are statistically significant, but none of the models explain much of the variance in RestBP, suggesting that RestBP is influenced by other unmodeled factors.
+
+
+### 1b) Fit a multiple regression model to predict the response using all of the predictors.  Describe your results.  For which predictors can we reject the null hypothesis:
+
+```{r Q1b, echo=TRUE}
+MLG_model <- lm(RestBP ~ Age + Sex + ChestPain + Chol + Fbs + RestECG + MaxHR + ExAng + Oldpeak + Slope + Ca + Thal, data = Heart)
+
+print(summary(MLG_model))
+```
+
+Based on the results of the multiple regression that only results that we can say have enough significance with greater than 95% confidence are with  the variables of age, fbs, and oldpeak. All other variables show no significance greater than 95%.
+
+### 1c) Preform variable selection (model selection) via forward, backward selection, and step-wise selection method, and then choose the optimal model to predict the response.  Use model selection criteria to justify your results.
+
+```{r Q1c1, echo=TRUE}
+# 1. Backward Selection
+backward_model <- step(MLG_model, direction = "backward", trace = 1)
+print(summary(backward_model))
+```
+
+From the backward selection method, the lowest AIC was $1673.74$ from the following model: `RestBP ~ Age + Sex + Fbs + RestECG + MaxHR + Oldpeak + Thal`.
+
+```{r Q1c2, echo=TRUE}
+# 2. Forward Selection
+# Start with the null model
+null_model <- lm(RestBP ~ 1, data = Heart)
+forward_model <- step(MLG_model, scope = list(lower = null_model, upper = MLG_model), direction = "forward", trace = 1)
+print(summary(forward_model))
+```
+
+```{r Q1c3, echo=TRUE}
+# 3. Stepwise Selection
+stepwise_model <- step(MLG_model, direction = "both", trace = 1)
+print(summary(stepwise_model))
+```
+
+**The final selected model is:** `RestBP ~ Age + Sex + Fbs + RestECG + MaxHR + Oldpeak + Thal`.
+
+```{r Q1.1, echo=TRUE}
+final_model <- lm(RestBP ~ Age + Sex + Fbs + RestECG + MaxHR + Oldpeak + Thal, data=Heart)
+print(summary(final_model))
+```
+
+
+\newpage
+
+## Question 2
+**We try to predict AHD (the predicted attribute): angiographic heart disease, using other variables in the data set; i.e; AHD is the response (outcome) , and other variables are the predictors.**\
+
+```{r Q2, echo=TRUE}
+ggplot(Heart, aes(x = Age, y = AHD)) +
+  geom_point() +
+  labs(x = "Age", y = "AHD", title = "AHD vs Age") +
+  stat_smooth(method="glm", se=FALSE, method.args = list(family=binomial))
+
+ggplot(Heart, aes(x = RestBP, y = AHD)) +
+  geom_point() +
+  labs(x = "RestBP", y = "AHD", title = "RestBP vs Age") +
+  stat_smooth(method="glm", se=FALSE, method.args = list(family=binomial))
+```
+
+### 2a) For each variable, fit a simple logistic regression model to predict the response.  Describe your results with odds ratios and related 95% confidence intervals.  In which of the models is there a statistically significant association between the predictor and the response?
+
+
+```{r Q2a1, echo=TRUE}
+# 1. Simple linear regression with Age
+model_age <- glm(AHD ~ Age, data = Heart)
+print(summary(model_age))
+
+# 2. Simple linear regression with Sex
+model_sex <- glm(AHD ~ Sex, data = Heart)
+print(summary(model_sex))
+
+# 3. Simple linear regression with ChestPain
+model_chestpain <- glm(AHD ~ ChestPain, data = Heart)
+print(summary(model_chestpain))
+
+# 4. Simple linear regression with Chol
+model_chol <- glm(AHD ~ Chol, data = Heart)
+print(summary(model_chol))
+
+# 5. Simple linear regression with Fbs
+model_fbs <- glm(AHD ~ Fbs, data = Heart)
+print(summary(model_fbs))
+
+# 6. Simple linear regression with RestECG
+model_restech <- glm(AHD ~ RestECG, data = Heart)
+print(summary(model_restech))
+
+# 7. Simple linear regression with MaxHR
+model_maxhr <- glm(AHD ~ MaxHR, data = Heart)
+print(summary(model_maxhr))
+
+# 8. Simple linear regression with ExAng
+model_exang <- glm(AHD ~ ExAng, data = Heart)
+print(summary(model_exang))
+
+# 9. Simple linear regression with Oldpeak
+model_oldpeak <- glm(AHD ~ Oldpeak, data = Heart)
+print(summary(model_oldpeak))
+
+# 10. Simple linear regression with Slope
+model_slope <- glm(AHD ~ Slope, data = Heart)
+print(summary(model_slope))
+
+# 11. Simple linear regression with Ca
+model_ca <- glm(AHD ~ Ca, data = Heart)
+print(summary(model_ca))
+
+# 12. Simple linear regression with Thal
+model_thal <- glm(AHD ~ Thal, data = Heart)
+print(summary(model_thal))
+```
+
+**AHD~Age**\
+The coefficient for Age is 0.012529, with a standard error of 0.003129, a t-value of 4.005, and a significant p-value of 7.86e-05.
+
+**AHD~Sex**\
+The coefficient for Sex is 0.29680, with a standard error of 0.05960, a t-value of 4.980, and a highly significant p-value of 1.09e-06.
+
+**AHD~ChestPain**\
+This model includes different types of chest pain as predictor variables. Each type of chest pain has its own coefficient, standard error, t-value, and p-value.
+
+**AHD~Chol**\
+The coefficient for Chol is 0.0007710, with a standard error of 0.0005573, and a non-significant p-value of 0.1676.
+
+**AHD~Fbs**\
+The coefficient for Fbs is 0.004486, with a standard error of 0.082481, and a non-significant p-value of 0.957.
+
+**AHD~RestECG**\
+The coefficient for RestECG is 0.08349, with a standard error of 0.02881, and a significant p-value of 0.00404.
+
+**AHD~MaxHR**\
+The coefficient for MaxHR is -0.009225, with a standard error of 0.001148, and a highly significant p-value of 2.24e-14.
+
+**AHD~ExAng**\
+The coefficient for ExAng is 0.44789, with a standard error of 0.05613, and a highly significant p-value of 3.27e-14.
+
+**AHD~Oldpeak**\
+The coefficient for Oldpeak is 0.18158, with a standard error of 0.02258, and a highly significant p-value of 2.16e-14.
+
+**AHD~Slope**\
+The coefficient for Slope is 0.26902, with a standard error of 0.04434, and a highly significant p-value.
+
+**AHD~Ca**\
+The coefficient for Ca is 0.24632, with a standard error of 0.02744, and a highly significant p-value.
+
+**AHD~Thal**\
+This model includes different types of thalassemia as predictor variables. Each type of thalassemia has its own coefficient, standard error, t-value, and p-value.
+
+
+### 2b) Fit a multiple logistic regression model to predict the response using all of the predictors.  Describe your results.  For which predictors can we reject the null hypothesis Ho: Also, provide C-index, create AUC plot and explain accuracy, sensitivity and specificity.
+
+```{r Q2b, echo=TRUE}
+mlog_model <- glm(AHD ~ ., data=Heart, family = binomial)
+print(summary(mlog_model))
+```
+
+
+### 2c) Preform variable selection (model selection) and then choose the optimal model to predict the response.  Use model selection criteria to justify your results.
+```{r Q2c, echo=TRUE}
+stepwise_mlog_model <- step(mlog_model, direction = "both", trace = 1)
+print(summary(stepwise_mlog_model))
+```
+**The best logistic model to predict `AHD` is:** `AHD ~ Sex + ChestPain + RestBP + RestECG + MaxHR + ExAng + Oldpeak + Slope + Ca + Thal`\
+The AIC was $225.5$. Using the model, we can show significance with 90% confidence on most variables, and then for 3 of the variables we can show significance over 95% confidence.
+
+```{r Q2c2, echo=TRUE}
+final_mlog_model <- glm(AHD ~ Sex + ChestPain + RestBP + RestECG + MaxHR + ExAng + Oldpeak + Slope + Ca + Thal, data=Heart)
+print(summary(final_mlog_model))
+```
+
+\newpage
+
+## Question 3
+**Using AHD (the predicted attribute): angiographic heart disease, as outcomes, please split the dataset into training and testing data-sets with appropriate split percentage.  Is your splitting procedure appropriate? Justify your answer.**\
+
+
+```{r Q3, echo=TRUE}
+set.seed(42)  # Set seed for reproducibility
+
+split <- sample.split(Heart$AHD, SplitRatio = 0.70)
+
+training_set <- subset(Heart, split == TRUE)
+testing_set <- subset(Heart, split == FALSE)
+
+test_model <- glm(AHD ~ RestBP + Age + Sex + Fbs + RestECG + MaxHR + Oldpeak + Thal, data=training_set)
+print(summary(test_model))
+
+# Make predictions on the test set
+predictions <- predict(test_model, newdata = testing_set)
+
+# Compare predicted RestBP with actual RestBP in the test set
+results <- data.frame(Actual = testing_set$RestBP, Predicted = predictions)
+
+# Calculate the RMSE (Root Mean Square Error) to evaluate performance
+rmse <- sqrt(mean((results$Actual - results$Predicted)^2))
+cat("RMSE: ", rmse, "\n")
+
+# Calculate R-squared for the test set
+rss <- sum((results$Actual - results$Predicted)^2)
+tss <- sum((results$Actual - mean(testing_set$RestBP))^2)
+r_squared <- 1 - (rss/tss)
+cat("R-squared: ", r_squared, "\n")
+```
+
+Due to the limited data for testing, a 70/30 split, allocates only 30% of your data for testing. This provides a robust assessment of the model's performance. A smaller testing dataset may lead to higher variability in the estimated performance metrics, such as accuracy, sensitivity, and specificity. Another reason is the risk of overfitting, A model trained on a smaller training set has a higher risk of overfitting. Lastly, the smaller the test set, the lower the statistical power to detect meaningful differences in performance between models or to assess the significance of the model's predictive ability.

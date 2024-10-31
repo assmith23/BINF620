@@ -1,0 +1,1096 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Assignment 5},
+  pdfauthor={Manning Smith},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Assignment 5}
+\author{Manning Smith}
+\date{10/22/2024}
+
+\begin{document}
+\maketitle
+
+\subsection{Data Dictionary of the
+dataset}\label{data-dictionary-of-the-dataset}
+
+\begin{itemize}
+\tightlist
+\item
+  ID: Subject Identifier
+\item
+  ALIVE: 1--infant alive; 2---infant not alive;
+\item
+  BF5EVER: Breastfeed--ever, 1=No, 2=Yes.
+\item
+  BF5LNGTH: duration -- length of time in weeks
+\item
+  PGWT\_GN: Pregnant weight gain/lost
+\item
+  MOM\_CM: Moms height -- centimeters
+\item
+  MOM\_BMI: MOM BODY MASS INDEX
+\item
+  MOMCIG: Number of Cigarettes Per Day
+\item
+  CIG\_PRIOR : No.~of cigarettes smoked - prior to pregnant
+\item
+  MOM\_LBKG : Moms weight -- before pregnant
+\end{itemize}
+
+\subsection{Import Data}\label{import-data}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pramData }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"PRAMSZZSept.csv"}\NormalTok{)}
+\NormalTok{imputedALIVE }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"imputed\_ALIVE.csv"}\NormalTok{)}
+
+\CommentTok{\#View(pramData)}
+\CommentTok{\#View(imputedALIVE)}
+\end{Highlighting}
+\end{Shaded}
+
+\newpage
+
+\section{Part 1}\label{part-1}
+
+\textbf{Bayes Rule}\\
+\[
+p(A|B)=\frac{P(B|A)P(A)}{P(B)}
+\]
+
+We have:\\
+
+\[
+\begin{aligned}
+  F = P(F) &= .90 \\
+  M = P(M) &= .1 \\
+  P(R|M) &= .95 \\
+  P(R|F) &= .08 \\
+  F \cup M &= \Omega
+\end{aligned}
+\]
+
+We want:\\
+
+\[
+\begin{aligned}
+  P(M|R) &= \\
+         &= \frac{P(R|M)P(M)}{P(R)}\\
+    P(R) &=  \text{ ?}
+\end{aligned}
+\]
+
+See that we can calculate the value of \(P(R)\) as
+
+\[
+\begin{aligned}
+  P(R) &= P(R|M)P(M) + P(R|F)P(F) \\
+       &= (.95)(.1) + (.08)(.9) = .167 \\
+       \\
+P(M|R) &= \frac{(.95)(.1)}{(.167)} \\
+       &= .57       
+\end{aligned}
+\] Notice that \(P(M|R)=.57\), meaning that given there is a rash the
+probability that it is measles causing the rash is \(57%
+\). I would say that the doctors have the wrong impression that there is
+a \(95%
+\) chance that the child as measles. We save safely say that there is
+closer to a \(50/50\) chance that the child has measles. Intuitively,
+this can be rationed from the idea that measles is considerably less
+prevalent in the population thus even though it is more likely to have a
+rash associated to it, due to the low volume of measles cases there is
+less of a chance the child contracted measles.
+
+\newpage
+
+\section{Part 2}\label{part-2}
+
+\subsection{Question 1}\label{question-1}
+
+\textbf{We will try to predict} \texttt{BF5EVER}.\\
+\textbf{Predictors:}
+\texttt{PGWT\_GN,MOM\_CM,\ MOM\_BMI,\ MOMCIG,\ CIG\_PRIOR,\ MOM\_LBKG}.\\
+\textbf{Model:}
+\texttt{BF5EVER\ \textasciitilde{}\ PGWT\_GN\ +\ MOM\_CM\ +\ MOM\_BMI\ +\ MOMCIG\ +\ CIG\_PRIOR\ +\ MOM\_LBKG}.\\
+
+\subsection{Question 2}\label{question-2}
+
+\subsection{2a)}\label{a}
+
+\textbf{Using ``featurePlot`` in ``caret'' to obtain Feature plots,
+Scatter Plot Matrix, and Box-Plots.}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{caret}\SpecialCharTok{::}\FunctionTok{featurePlot}\NormalTok{(}\AttributeTok{x =}\NormalTok{ imputedALIVE[, }\FunctionTok{c}\NormalTok{(}\StringTok{"PGWT\_GN"}\NormalTok{, }\StringTok{"MOM\_CM"}\NormalTok{, }\StringTok{"MOM\_BMI"}\NormalTok{, }\StringTok{"MOMCIG"}\NormalTok{, }\StringTok{"CIG\_PRIOR"}\NormalTok{, }\StringTok{"MOM\_LBKG"}\NormalTok{)],}
+            \AttributeTok{y =} \FunctionTok{as.factor}\NormalTok{(imputedALIVE}\SpecialCharTok{$}\NormalTok{BF5EVER),}
+            \AttributeTok{plot =} \StringTok{"density"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Assignment-5_files/figure-latex/Q2a_density-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{caret}\SpecialCharTok{::}\FunctionTok{featurePlot}\NormalTok{(}\AttributeTok{x =}\NormalTok{ imputedALIVE[, }\FunctionTok{c}\NormalTok{(}\StringTok{"PGWT\_GN"}\NormalTok{, }\StringTok{"MOM\_CM"}\NormalTok{, }\StringTok{"MOM\_BMI"}\NormalTok{, }\StringTok{"MOMCIG"}\NormalTok{, }\StringTok{"CIG\_PRIOR"}\NormalTok{, }\StringTok{"MOM\_LBKG"}\NormalTok{)],}
+            \AttributeTok{y =} \FunctionTok{as.factor}\NormalTok{(imputedALIVE}\SpecialCharTok{$}\NormalTok{BF5EVER),}
+            \AttributeTok{plot =} \StringTok{"box"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Assignment-5_files/figure-latex/Q2a_box-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{caret}\SpecialCharTok{::}\FunctionTok{featurePlot}\NormalTok{(}\AttributeTok{x =}\NormalTok{ imputedALIVE[, }\FunctionTok{c}\NormalTok{(}\StringTok{"PGWT\_GN"}\NormalTok{, }\StringTok{"MOM\_CM"}\NormalTok{, }\StringTok{"MOM\_BMI"}\NormalTok{, }\StringTok{"MOMCIG"}\NormalTok{, }\StringTok{"CIG\_PRIOR"}\NormalTok{, }\StringTok{"MOM\_LBKG"}\NormalTok{)],}
+            \AttributeTok{y =} \FunctionTok{as.factor}\NormalTok{(imputedALIVE}\SpecialCharTok{$}\NormalTok{BF5EVER),}
+            \AttributeTok{plot =} \StringTok{"pairs"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Assignment-5_files/figure-latex/Q2a_pairs-1.pdf}
+
+\subsubsection{2b)}\label{b}
+
+\textbf{Fit a multiple naïve Bayes model to predict the response using
+the six predictors. Describe your results,including prior probabilities,
+Conditional probabilities, predictions, and Accuracy.}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{naive\_model }\OtherTok{\textless{}{-}} \FunctionTok{naive\_bayes}\NormalTok{(}\FunctionTok{as.factor}\NormalTok{(BF5EVER) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ PGWT\_GN }\SpecialCharTok{+}\NormalTok{ MOM\_CM }\SpecialCharTok{+}\NormalTok{ MOM\_BMI }\SpecialCharTok{+}\NormalTok{ MOMCIG }\SpecialCharTok{+}\NormalTok{ CIG\_PRIOR }\SpecialCharTok{+}\NormalTok{ MOM\_LBKG, }\AttributeTok{data =}\NormalTok{ imputedALIVE)}
+\FunctionTok{summary}\NormalTok{(naive\_model)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## ================================= Naive Bayes ================================== 
+##  
+## - Call: naive_bayes.formula(formula = as.factor(BF5EVER) ~ PGWT_GN +      MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG, data = imputedALIVE) 
+## - Laplace: 0 
+## - Classes: 2 
+## - Samples: 189159 
+## - Features: 6 
+## - Conditional distributions: 
+##     - Gaussian: 6
+## - Prior probabilities: 
+##     - 1: 0.1669
+##     - 2: 0.8331
+## 
+## --------------------------------------------------------------------------------
+\end{verbatim}
+
+\textbf{Prior Distribution:}\\
+\[
+\begin{aligned}
+   \text{BF5EVER = No}  &= 1: .16 \\
+   \text{BF5EVER = Yes} &= 2: .84
+\end{aligned}
+\] The prior distribution indicates that in the sample, a significant
+majority of mothers \((83.59%)
+\) have breastfed their babies at some point.
+
+\textbf{Conditional Probabilities:}\\
+This naive bayes model assumes a Gaussian distributions for the
+predictors.\\
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Model Tables}
+\NormalTok{naive\_model}\SpecialCharTok{$}\NormalTok{tables}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## -------------------------------------------------------------------------------- 
+## :: PGWT_GN (Gaussian) 
+## -------------------------------------------------------------------------------- 
+##        
+## PGWT_GN        1        2
+##    mean 30.42799 31.47664
+##    sd   20.57787 19.33562
+## 
+## -------------------------------------------------------------------------------- 
+## :: MOM_CM (Gaussian) 
+## -------------------------------------------------------------------------------- 
+##       
+## MOM_CM          1          2
+##   mean 162.585411 163.233482
+##   sd     7.573093   7.603656
+## 
+## -------------------------------------------------------------------------------- 
+## :: MOM_BMI (Gaussian) 
+## -------------------------------------------------------------------------------- 
+##        
+## MOM_BMI         1         2
+##    mean 26.781210 25.856626
+##    sd    7.229449  6.379840
+## 
+## -------------------------------------------------------------------------------- 
+## :: MOMCIG (Gaussian) 
+## -------------------------------------------------------------------------------- 
+##       
+## MOMCIG         1         2
+##   mean 2.2949226 0.6973881
+##   sd   5.3812253 2.9780844
+## 
+## -------------------------------------------------------------------------------- 
+## :: CIG_PRIOR (Gaussian) 
+## -------------------------------------------------------------------------------- 
+##          
+## CIG_PRIOR        1        2
+##      mean 3.968927 1.463785
+##      sd   8.365314 5.209124
+## 
+## -------------------------------------------------------------------------------- 
+## :: MOM_LBKG (Gaussian) 
+## -------------------------------------------------------------------------------- 
+##         
+## MOM_LBKG         1         2
+##     mean 156.30458 150.70097
+##     sd    45.07990  40.62487
+## 
+## --------------------------------------------------------------------------------
+\end{verbatim}
+
+In summary, mothers who breastfed gained slightly more weight on average
+during pregnancy. There is no difference in height of mothers. The
+mother BMI was slightly lower for those who breastfed. Non-breastfeeding
+mothers smoked more cigarettes on average. For cigarettes before
+pregnancy, results were similar to that of smoked during pregnancy.
+Lastly, mothers not breastfeeding had a higher pre pregnancy weight.
+
+\textbf{Predictions and Accuracy:}\\
+An accuracy of \(81.3%
+\) was determined to be good but not the most ideal. The true negative
+rate was \(93.9%
+\), suggesting the model is better predicting mothers that breastfed
+rather than those that did not.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Makes Predictions}
+\NormalTok{predictions }\OtherTok{\textless{}{-}} \FunctionTok{predict}\NormalTok{(naive\_model, imputedALIVE)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: predict.naive_bayes(): more features in the newdata are provided as
+## there are probability tables in the object. Calculation is performed based on
+## features to be found in the tables.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Form confusion Matrix}
+\FunctionTok{confusionMatrix}\NormalTok{(predictions, }\FunctionTok{as.factor}\NormalTok{(imputedALIVE}\SpecialCharTok{$}\NormalTok{BF5EVER))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction      1      2
+##          1   6098  10686
+##          2  25473 146902
+##                                           
+##                Accuracy : 0.8088          
+##                  95% CI : (0.8071, 0.8106)
+##     No Information Rate : 0.8331          
+##     P-Value [Acc > NIR] : 1               
+##                                           
+##                   Kappa : 0.1542          
+##                                           
+##  Mcnemar's Test P-Value : <2e-16          
+##                                           
+##             Sensitivity : 0.19315         
+##             Specificity : 0.93219         
+##          Pos Pred Value : 0.36332         
+##          Neg Pred Value : 0.85222         
+##              Prevalence : 0.16690         
+##          Detection Rate : 0.03224         
+##    Detection Prevalence : 0.08873         
+##       Balanced Accuracy : 0.56267         
+##                                           
+##        'Positive' Class : 1               
+## 
+\end{verbatim}
+
+\textbf{Summary:}\\
+Overall, the model had good accuracy and strong specificity, but it
+struggles to identify mothers who did not breastfeed. Mothers who
+breastfed gained slightly more weight during pregnancy, had lower
+pre-pregnancy BMI, and smoked less both during and before pregnancy, as
+identified by the predictors. However, the model struggled to predict
+non-breastfeeding, while the opposite's accuracy was solid.\footnote{\href{https://chatgpt.com/share/6713cf60-5454-8011-a41b-aa7034cdfce7}{ChatGPT
+  Used to Summarize Above Sections}}
+
+\newpage
+
+\subsection{Question 3}\label{question-3}
+
+\textbf{We will try to predict} \texttt{BF5EVER}.\\
+\textbf{Predictors:}
+\texttt{PGWT\_GN,\ MOM\_CM,\ MOM\_BMI,\ MOMCIG,\ CIG\_PRIOR,\ MOM\_LBKG}.\\
+\textbf{Model:}
+\texttt{BF5EVER\ \textasciitilde{}\ PGWT\_GN\ +\ MOM\_CM\ +\ MOM\_BMI\ +\ MOMCIG\ +\ CIG\_PRIOR\ +\ MOM\_LBKG}.\\
+
+\subsubsection{3a)}\label{a-1}
+
+\textbf{Fit a linear discriminant model to predict the response using
+the six predictors. Describe your results, including priori
+probabilities of groups, group means, coefficients of linear
+discriminant, predictions and Accuracy.}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Split Data}
+\NormalTok{trainIndex }\OtherTok{\textless{}{-}} \FunctionTok{createDataPartition}\NormalTok{(imputedALIVE}\SpecialCharTok{$}\NormalTok{BF5EVER, }\AttributeTok{p =} \FloatTok{0.7}\NormalTok{, }\AttributeTok{list =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{times =} \DecValTok{1}\NormalTok{)}
+\NormalTok{data\_trn }\OtherTok{\textless{}{-}}\NormalTok{ imputedALIVE[trainIndex, ]}
+\NormalTok{data\_tst }\OtherTok{\textless{}{-}}\NormalTok{ imputedALIVE[}\SpecialCharTok{{-}}\NormalTok{trainIndex, ]}
+\end{Highlighting}
+\end{Shaded}
+
+Source for spiting the data set.\footnote{\href{https://chatgpt.com/share/6713d973-d3c0-8011-987f-9d3751de0981}{ChatGPT
+  Used to Split Data Set}}\\
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# LDA Model}
+\NormalTok{alive\_lda }\OtherTok{=} \FunctionTok{lda}\NormalTok{(BF5EVER }\SpecialCharTok{\textasciitilde{}}\NormalTok{ PGWT\_GN }\SpecialCharTok{+}\NormalTok{ MOM\_CM }\SpecialCharTok{+}\NormalTok{ MOM\_BMI }\SpecialCharTok{+}\NormalTok{ MOMCIG }\SpecialCharTok{+}\NormalTok{ CIG\_PRIOR }\SpecialCharTok{+}\NormalTok{ MOM\_LBKG, }\AttributeTok{data =}\NormalTok{ data\_trn)}
+\CommentTok{\#alive\_lda}
+\end{Highlighting}
+\end{Shaded}
+
+LDA code taking from notes provided in the module.\\
+
+\textbf{Prior Probabilities:}\\
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{alive\_lda}\SpecialCharTok{$}\NormalTok{prior}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##         1         2 
+## 0.1674773 0.8325227
+\end{verbatim}
+
+\[
+\begin{aligned}
+   \text{BF5EVER = No}  &= 1: .17 \\
+   \text{BF5EVER = Yes} &= 2: .84
+\end{aligned}
+\] Notice there is a slight difference in this model compared to our
+naive bayes. The prior probabilities suggest that a higher proportion of
+mothers in the training dataset breastfed their infants compared to
+those who did not. This imbalance may influence the model's predictions.
+
+\textbf{Group Means:}\\
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(alive\_lda}\SpecialCharTok{$}\NormalTok{counts, }\AttributeTok{caption =} \StringTok{"Counts"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Counts
+
+x
+
+22176
+
+110236
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(alive\_lda}\SpecialCharTok{$}\NormalTok{means, }\AttributeTok{caption =} \StringTok{"Group Means"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Group Means
+
+PGWT\_GN
+
+MOM\_CM
+
+MOM\_BMI
+
+MOMCIG
+
+CIG\_PRIOR
+
+MOM\_LBKG
+
+30.51696
+
+162.5874
+
+26.74257
+
+2.2738997
+
+3.972583
+
+156.1217
+
+31.44895
+
+163.2122
+
+25.85993
+
+0.6995083
+
+1.461954
+
+150.6719
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{PGWT\_GN}: Mothers who did not breastfeed gained slightly less
+  weight during pregnancy on average.
+\item
+  \texttt{MOM\_CM}: The height difference between the two groups is
+  minimal.
+\item
+  \texttt{MOM\_BMI}: Non-breastfeeding mothers have a higher average
+  BMI.
+\item
+  \texttt{MOMCIG}: Non-breastfeeding mothers smoke more cigarettes per
+  day on average.
+\item
+  \texttt{CIG\_PRIOR}: Non-breastfeeding mothers smoked more prior to
+  pregnancy.
+\item
+  \texttt{MOM\_LBKG}: Mothers who breastfed had lower average weights
+  before pregnancy.
+\end{itemize}
+
+\textbf{coefficients of linear Discriminants:}\\
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{coefDiscrim }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}
+  \AttributeTok{Variable =} \FunctionTok{c}\NormalTok{(}\StringTok{"PGWT\_GN"}\NormalTok{, }\StringTok{"MOM\_CM"}\NormalTok{, }\StringTok{"MOM\_BMI"}\NormalTok{, }\StringTok{"MOMCIG"}\NormalTok{, }\StringTok{"CIG\_PRIOR"}\NormalTok{, }\StringTok{"MOM\_LBKG"}\NormalTok{),}
+  \AttributeTok{LD1 =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.003902853}\NormalTok{, }\FloatTok{0.060731142}\NormalTok{, }\FloatTok{0.083359371}\NormalTok{, }\SpecialCharTok{{-}}\FloatTok{0.164828374}\NormalTok{, }\SpecialCharTok{{-}}\FloatTok{0.068187890}\NormalTok{, }\SpecialCharTok{{-}}\FloatTok{0.021325825}\NormalTok{)}
+\NormalTok{)}
+
+\FunctionTok{kable}\NormalTok{(coefDiscrim, }\AttributeTok{caption =} \StringTok{"Coefficients of linear discriminants"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Coefficients of linear discriminants
+
+Variable
+
+LD1
+
+PGWT\_GN
+
+0.0039029
+
+MOM\_CM
+
+0.0607311
+
+MOM\_BMI
+
+0.0833594
+
+MOMCIG
+
+-0.1648284
+
+CIG\_PRIOR
+
+-0.0681879
+
+MOM\_LBKG
+
+-0.0213258
+
+\emph{Positive coefficients:}\\
+\texttt{PGWT\_GN,\ MOM\_CM,\ MOM\_BMI}. These indicate that higher
+values are associated with increased odds of breastfeeding.
+
+\emph{Negative coefficients:}\\
+\texttt{MOMCIG,\ CIG\_PRIOR,\ MOM\_LBKG}. These indicate that higher
+values are associated with decreased odds of breastfeeding. Therefore,
+the results suggest that smoking and a lower pre-pregnancy weight of the
+mother may influence breastfeeding.
+
+\textbf{Predictions and Accuracy:}\\
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Predict}
+\NormalTok{data\_trn\_pred }\OtherTok{\textless{}{-}} \FunctionTok{predict}\NormalTok{(alive\_lda, data\_trn)}
+\NormalTok{data\_tst\_pred }\OtherTok{\textless{}{-}} \FunctionTok{predict}\NormalTok{(alive\_lda, data\_tst)}
+
+\CommentTok{\# Store Predictions}
+\NormalTok{predictions\_trn }\OtherTok{\textless{}{-}}\NormalTok{ data\_trn\_pred}\SpecialCharTok{$}\NormalTok{class}
+\NormalTok{predictions\_tst }\OtherTok{\textless{}{-}}\NormalTok{ data\_tst\_pred}\SpecialCharTok{$}\NormalTok{class}
+
+\CommentTok{\# Calculate classification error}
+\NormalTok{calc\_class\_err }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(actual, predicted) \{}
+  \FunctionTok{mean}\NormalTok{(actual }\SpecialCharTok{!=}\NormalTok{ predicted)}
+\NormalTok{\}}
+
+\CommentTok{\# Check accuracy on the training set}
+\NormalTok{accuracy\_trn }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(predictions\_trn }\SpecialCharTok{==}\NormalTok{ data\_trn}\SpecialCharTok{$}\NormalTok{BF5EVER)}
+
+\CommentTok{\# Check accuracy on the test set}
+\NormalTok{accuracy\_tst }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(predictions\_tst }\SpecialCharTok{==}\NormalTok{ data\_tst}\SpecialCharTok{$}\NormalTok{BF5EVER)}
+
+\CommentTok{\# Create confusion matrices}
+\NormalTok{conf\_matrix\_trn }\OtherTok{\textless{}{-}} \FunctionTok{table}\NormalTok{(predictions\_trn, data\_trn}\SpecialCharTok{$}\NormalTok{BF5EVER)}
+\NormalTok{conf\_matrix\_tst }\OtherTok{\textless{}{-}} \FunctionTok{table}\NormalTok{(predictions\_tst, data\_tst}\SpecialCharTok{$}\NormalTok{BF5EVER)}
+
+\CommentTok{\# Output results}
+\NormalTok{accuracy\_trn}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.8293961
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{accuracy\_tst}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.832837
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(conf\_matrix\_trn, }\AttributeTok{caption =} \StringTok{"Coefficient Matrix of Train | LDA"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Coefficient Matrix of Train \textbar{} LDA
+
+1
+
+2
+
+1205
+
+1619
+
+20971
+
+108617
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(conf\_matrix\_tst, }\AttributeTok{caption =} \StringTok{"Coefficient Matrix of Test  | LDA"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Coefficient Matrix of Test \textbar{} LDA
+
+1
+
+2
+
+556
+
+647
+
+8839
+
+46705
+
+\emph{Training Set Accuracy:} \(\approx\) 0.83\\
+The LDA model achieved a training accuracy of approximately \(83.04%
+\). This means it can effectively classify breastfeeding status. Once
+again, this model suggests that we are good at predicting when a mother
+breastfeeds this child, but not so good as predicting when they don't
+breastfeed. This can be seen in that the predictors, especially
+smoking-related variables, have a significant influence on breastfeeding
+decisions.
+
+\textbf{Summary:}\\
+The model indicated that the training dataset showed a higher proportion
+of mothers who breastfed their infants. Group means revealed that
+non-breastfeeding mothers tended to have a higher BMI, smoke more
+cigarettes, and gained slightly less weight during pregnancy. On the
+other hand, breastfeeding mothers had a lower pre-pregnancy weights, in
+general. From the linear discriminant analysis, we achieved enough of an
+approximate to suggest the effectiveness of classifying the status of
+breastfeeding, However, there are challenges in predicting
+non-breastfeeding due to the influence of smoking and pre-pregnancy
+weight for the decisions of breastfeeding.\footnote{\href{https://chatgpt.com/share/6713e2fa-743c-8011-b9b6-4ed452cc3b3a}{ChatGPT
+  Used to Summarize Above Sections}}
+
+\newpage
+
+\subsubsection{3b)}\label{b-1}
+
+\textbf{Fit a quadratic discriminant model to predict the response using
+the six predictors. Describe your results, including priori
+probabilities of groups, group means, predictions and Accuracy.}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# QDA Model}
+\NormalTok{alive\_qda }\OtherTok{=} \FunctionTok{qda}\NormalTok{(BF5EVER }\SpecialCharTok{\textasciitilde{}}\NormalTok{ PGWT\_GN }\SpecialCharTok{+}\NormalTok{ MOM\_CM }\SpecialCharTok{+}\NormalTok{ MOM\_BMI }\SpecialCharTok{+}\NormalTok{ MOMCIG }\SpecialCharTok{+}\NormalTok{ CIG\_PRIOR }\SpecialCharTok{+}\NormalTok{ MOM\_LBKG, }\AttributeTok{data =}\NormalTok{ data\_trn)}
+\CommentTok{\#alive\_qda}
+\end{Highlighting}
+\end{Shaded}
+
+\textbf{Prior Probabilities:}\\
+\[
+\begin{aligned}
+   \text{BF5EVER = No}  &= 1: .17 \\
+   \text{BF5EVER = Yes} &= 2: .83
+\end{aligned}
+\] Similar to the lda model, the prior probabilities suggest that a
+higher proportion of mothers in the training dataset breastfed their
+infants compared to those who did not.
+
+\textbf{Group Means:}\\
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(alive\_qda}\SpecialCharTok{$}\NormalTok{counts, }\AttributeTok{caption =} \StringTok{"Counts"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Counts
+
+x
+
+22176
+
+110236
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(alive\_qda}\SpecialCharTok{$}\NormalTok{means, }\AttributeTok{caption =} \StringTok{"Group Means"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Group Means
+
+PGWT\_GN
+
+MOM\_CM
+
+MOM\_BMI
+
+MOMCIG
+
+CIG\_PRIOR
+
+MOM\_LBKG
+
+30.51696
+
+162.5874
+
+26.74257
+
+2.2738997
+
+3.972583
+
+156.1217
+
+31.44895
+
+163.2122
+
+25.85993
+
+0.6995083
+
+1.461954
+
+150.6719
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{PGWT\_GN}: On average, mothers who breastfed gained slightly
+  more weight during pregnancy.
+\item
+  \texttt{MOM\_CM}: There is minimal difference in height between the
+  two groups.
+\item
+  \texttt{MOM\_BMI}: The BMI is higher for mothers who never breastfed.
+\item
+  \texttt{MOMCIG} and \texttt{CIG\_PRIOR}: Mothers who never breastfed
+  smoke significantly more cigarettes both during and before pregnancy.
+\item
+  \texttt{MOM\_LBKG}: The mothers who breastfed tend to have lower
+  weights before pregnancy.
+\end{itemize}
+
+\textbf{Predictions and Accuracy:}\\
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Predict}
+\NormalTok{data\_trn\_pred }\OtherTok{\textless{}{-}} \FunctionTok{predict}\NormalTok{(alive\_qda, data\_trn)}
+\NormalTok{data\_tst\_pred }\OtherTok{\textless{}{-}} \FunctionTok{predict}\NormalTok{(alive\_qda, data\_tst)}
+
+\CommentTok{\# Store Predictions}
+\NormalTok{predictions\_trn }\OtherTok{\textless{}{-}}\NormalTok{ data\_trn\_pred}\SpecialCharTok{$}\NormalTok{class}
+\NormalTok{predictions\_tst }\OtherTok{\textless{}{-}}\NormalTok{ data\_tst\_pred}\SpecialCharTok{$}\NormalTok{class}
+
+\CommentTok{\# Calculate classification error}
+\NormalTok{calc\_class\_err }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(actual, predicted) \{}
+  \FunctionTok{mean}\NormalTok{(actual }\SpecialCharTok{!=}\NormalTok{ predicted)}
+\NormalTok{\}}
+
+\CommentTok{\# Check accuracy on the training set}
+\NormalTok{accuracy\_trn }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(predictions\_trn }\SpecialCharTok{==}\NormalTok{ data\_trn}\SpecialCharTok{$}\NormalTok{BF5EVER)}
+
+\CommentTok{\# Check accuracy on the test set}
+\NormalTok{accuracy\_tst }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(predictions\_tst }\SpecialCharTok{==}\NormalTok{ data\_tst}\SpecialCharTok{$}\NormalTok{BF5EVER)}
+
+\CommentTok{\# Create confusion matrices}
+\NormalTok{conf\_matrix\_trn }\OtherTok{\textless{}{-}} \FunctionTok{table}\NormalTok{(predictions\_trn, data\_trn}\SpecialCharTok{$}\NormalTok{BF5EVER)}
+\NormalTok{conf\_matrix\_tst }\OtherTok{\textless{}{-}} \FunctionTok{table}\NormalTok{(predictions\_tst, data\_tst}\SpecialCharTok{$}\NormalTok{BF5EVER)}
+
+\CommentTok{\# Output results}
+\NormalTok{accuracy\_trn}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.8100172
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{accuracy\_tst}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.8107213
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(conf\_matrix\_trn, }\AttributeTok{caption =} \StringTok{"Coefficient Matrix of Train | QDA"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Coefficient Matrix of Train \textbar{} QDA
+
+1
+
+2
+
+4103
+
+7083
+
+18073
+
+103153
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{kable}\NormalTok{(conf\_matrix\_tst, }\AttributeTok{caption =} \StringTok{"Coefficient Matrix of Test  | QDA"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Coefficient Matrix of Test \textbar{} QDA
+
+1
+
+2
+
+1699
+
+3045
+
+7696
+
+44307
+
+The accuracy of the model on the training data was approximately
+\(81.18\)\%. Thus meaning, the model correctly classified \(81.18\)\% of
+the training instances.
+
+\textbf{Summary:}\\
+Overall, the QDA model suggests strong evidence when predicting the
+status breastfeeding from the selected predictors. Certain predictors
+such as smoking an mother weight suggest higher predictability for the
+status of breastfeeding.
+
+\newpage
+
+\subsubsection{3c)}\label{c}
+
+\textbf{Compare the results from a) and b), which model do you think is
+better to fit the data? Justify your answer.}\\
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{data }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}
+  \AttributeTok{Metric =} \FunctionTok{c}\NormalTok{(}
+    \StringTok{"Prior Probabilities"}\NormalTok{,}\StringTok{"Group Means"}\NormalTok{,}\StringTok{"PGWT\_GN"}\NormalTok{,}\StringTok{"MOM\_CM"}\NormalTok{,}\StringTok{"MOM\_BMI"}\NormalTok{,}\StringTok{"MOMCIG"}\NormalTok{,}\StringTok{"CIG\_PRIOR"}\NormalTok{,}\StringTok{"MOM\_LBKG"}\NormalTok{,}\StringTok{"Training Set Accuracy"}\NormalTok{,}\StringTok{"Test Set Accuracy"}\NormalTok{,}\StringTok{"Confusion Matrix (Training)"}\NormalTok{,}\StringTok{"True Positives (TP)"}\NormalTok{,}\StringTok{"False Positives (FP)"}\NormalTok{,}\StringTok{"True Negatives (TN)"}\NormalTok{,}\StringTok{"False Negatives (FN)"}\NormalTok{,}\StringTok{"Confusion Matrix (Test)"}\NormalTok{,}\StringTok{"True Positives (TP)"}\NormalTok{,}\StringTok{"False Positives (FP)"}\NormalTok{,}\StringTok{"True Negatives (TN)"}\NormalTok{,}\StringTok{"False Negatives (FN)"}\NormalTok{),}
+  \AttributeTok{LDA =} \FunctionTok{c}\NormalTok{(}\StringTok{"1: 16.69\%, 2: 83.31\%"}\NormalTok{,}\ConstantTok{NA}\NormalTok{,}\FloatTok{30.39}\NormalTok{,}\FloatTok{162.58}\NormalTok{,}\FloatTok{26.77}\NormalTok{,}\FloatTok{2.29}\NormalTok{,}\FloatTok{3.97}\NormalTok{,}\FloatTok{156.23}\NormalTok{,}\StringTok{"83.04\%"}\NormalTok{,}\StringTok{"83.06\%"}\NormalTok{,}\ConstantTok{NA}\NormalTok{,}\DecValTok{1250}\NormalTok{,}\DecValTok{1606}\NormalTok{,}\DecValTok{110306}\NormalTok{,}\DecValTok{20856}\NormalTok{,}\ConstantTok{NA}\NormalTok{,}\DecValTok{496}\NormalTok{,}\DecValTok{646}\NormalTok{,}\DecValTok{8969}\NormalTok{,}\DecValTok{8968}
+\NormalTok{  ),}
+  \AttributeTok{QDA =} \FunctionTok{c}\NormalTok{(}
+    \StringTok{"1: 16.69\%, 2: 83.31\%"}\NormalTok{,}\ConstantTok{NA}\NormalTok{,}\FloatTok{30.39}\NormalTok{,}\FloatTok{162.58}\NormalTok{,}\FloatTok{26.77}\NormalTok{,}\FloatTok{2.29}\NormalTok{,}\FloatTok{3.97}\NormalTok{,}\FloatTok{156.23}\NormalTok{,}\StringTok{"81.17\%"}\NormalTok{,}\StringTok{"81.18\%"}\NormalTok{,}\ConstantTok{NA}\NormalTok{,}\DecValTok{3978}\NormalTok{,}\DecValTok{6809}\NormalTok{,}\DecValTok{103497}\NormalTok{,}\DecValTok{18128}\NormalTok{,}\ConstantTok{NA}\NormalTok{,}\DecValTok{1717}\NormalTok{,}\DecValTok{2934}\NormalTok{,}\DecValTok{44348}\NormalTok{,}\DecValTok{7748}\NormalTok{),}\AttributeTok{stringsAsFactors =} \ConstantTok{FALSE}\NormalTok{)}
+
+\FunctionTok{kable}\NormalTok{(data, }\AttributeTok{caption =} \StringTok{"Analysis Between LDA and QDA"}\NormalTok{, }\AttributeTok{format =} \StringTok{"html"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Analysis Between LDA and QDA
+
+Metric
+
+LDA
+
+QDA
+
+Prior Probabilities
+
+1: 16.69\%, 2: 83.31\%
+
+1: 16.69\%, 2: 83.31\%
+
+Group Means
+
+NA
+
+NA
+
+PGWT\_GN
+
+30.39
+
+30.39
+
+MOM\_CM
+
+162.58
+
+162.58
+
+MOM\_BMI
+
+26.77
+
+26.77
+
+MOMCIG
+
+2.29
+
+2.29
+
+CIG\_PRIOR
+
+3.97
+
+3.97
+
+MOM\_LBKG
+
+156.23
+
+156.23
+
+Training Set Accuracy
+
+83.04\%
+
+81.17\%
+
+Test Set Accuracy
+
+83.06\%
+
+81.18\%
+
+Confusion Matrix (Training)
+
+NA
+
+NA
+
+True Positives (TP)
+
+1250
+
+3978
+
+False Positives (FP)
+
+1606
+
+6809
+
+True Negatives (TN)
+
+110306
+
+103497
+
+False Negatives (FN)
+
+20856
+
+18128
+
+Confusion Matrix (Test)
+
+NA
+
+NA
+
+True Positives (TP)
+
+496
+
+1717
+
+False Positives (FP)
+
+646
+
+2934
+
+True Negatives (TN)
+
+8969
+
+44348
+
+False Negatives (FN)
+
+8968
+
+7748
+
+Based on the two models tested, the LDA outperforms QDA in terms of
+accuracy for both the training and test sets. That being said, the
+choice of model should also consider the underlying assumptions: if the
+assumptions of LDA hold, it is typically a preferred model due to its
+higher accuracy and interpretability.\\
+Therefore, in this analysis, LDA is recommended as the better-performing
+model for predicting breastfeeding status \texttt{BF5EVER} based on the
+given predictors.
+
+\end{document}

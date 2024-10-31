@@ -1,0 +1,81 @@
+---
+title: "Assignment 0"
+author: "Manning Smith"
+date: "10/1/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(matrixStats)
+```
+
+# Question 1
+
+```{r Q1, echo=TRUE}
+```
+
+### 1a)
+
+```{r Q1a, echo=TRUE}
+```
+
+\newpage
+# Question 2
+
+```{r Q2, echo=TRUE}
+```
+
+\newpage
+# Question 3
+
+```{r Q3, echo=TRUE}
+```
+
+
+\newpage
+# Question 4
+
+```{r Q4, echo=TRUE}
+```
+
+
+\newpage
+# Question 5
+
+```{r Q5, echo=TRUE}
+```
+
+
+\newpage
+# Question 6
+
+```{r Q6, echo=TRUE}
+```
+
+
+\newpage
+# Question 7
+
+```{r Q7, echo=TRUE}
+```
+
+
+\newpage
+# Question 8
+
+```{r 8, echo=TRUE}
+```
+
+\newpage
+# Question 9
+
+```{r Q9, echo=TRUE}
+```
+
+\newpage
+# Question 10
+
+```{r Q10, echo=TRUE}
+```

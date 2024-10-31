@@ -1,0 +1,210 @@
+---
+title: "Assignment 3"
+author: "Manning Smith"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(survival)
+library(ranger)
+library(ggplot2)
+library(ggfortify)
+library("survminer")
+library(gridExtra)
+library(tinytex)
+```
+
+# Part 1
+Suppose we have a hazard function $h(t)=c$, where $c$ is a constant. Please derive the corresponding survival function $S(t)$ and probability density function $f(t)$.\
+
+**Survival function:**\
+Given that $h(t)=c$. We derive the survival function $S(t)$ as:
+$$
+  h(t) = -\frac{d}{dt}ln(S(t))
+$$
+given $h(t)=c$, we can substitute:
+$$
+  c = -\frac{d}{dt}ln(S(t))
+$$
+Integrate both sides with respect to $t$:
+$$
+  \int c dt = - \int ln(S(t)) dt
+$$
+see,
+$$
+  ct = - ln(S(t))
+$$
+Let $ln(S(0))=0$,
+$$
+  ln(S(t)) = -ct
+$$
+then take the exponentiation of each side,
+$$
+  S(t) = e^{-ct}
+$$
+
+Or as the book has it as, $h(t)=\lambda$:
+$$
+  S(t) = e^{-\lambda t}
+$$
+
+**PDF**\
+$$
+  f(t) =  -\frac{d}{dt} S(t)
+$$
+Substitute for $S(t)=e^{-ct}$:
+$$
+  f(t) =  -\frac{d}{dt} e^{-ct}
+$$
+Differentiate,
+$$
+  f(t) = ce^{-ct}
+$$
+Or as the book has it as, $h(t)=\lambda$:
+$$
+  f(t) = \lambda e^{-\lambda t}
+$$
+
+\newpage
+# Part 2
+
+High blood pressure is an important public health concern because it is highly prevalent and a risk factor for adverse health outcomes, including coronary heart disease, stroke, decompensated heart failure, chronic kidney disease, and decline in cognitive function, and death. A study was conducted with two strategies, one with the standard target of systolic blood pressure140 mm Hg(standard treatment), and the other targets a more intensive target of systolic blood pressure120 mm Hg (intensive treatment).  
+
+- Get familiar with the data. How many observations and variables (which type) are in the dataset?
+- Estimate the survival curves using the Kaplan–Meier method for each treatment strategy. Show your survival data with censored time, and perform a test for possible differences, i.e., conduct a suitable test to examine the effect of intensive treatment.   
+- Conduct Univariate Cox regression to examine the impact of intensive treatment strategy on survival of patients.
+- Conduct multivariate Cox Regression Analysis to examine the impact of the treatment strategy and other factors on the risk of death using hazard ratios.
+- Conduct a suitable test and a graphical diagnostic for the proportional hazards assumption for the used Cox Regression modelling.
+
+## Data Set Details:
+- ID:  patient ID
+- Treat:  1:  Intensive treatment; 0:  Standard treatment
+- Age:  Patient age at baseline in years
+- Gender:  1:  Female, 0:  Male     
+- Smoking:  Smoking Status, 1:  Yes, 0:  No.
+- Triglycerides:  Baseline Triglycerides mg/dL
+- BMI:  Baseline Body Mass Index kg/m2
+- total_DDD:  Baseline defined daily dosage of antihypertensive medications. 
+- Death:  All Cause Mortality in the follow-up time period.  1: Death; 0:  Alive.
+- Time:  Follow-up time (years) or time to death from enrollment
+
+## Import Data
+```{r Import, echo=TRUE}
+BPdata <- read.csv("BPIntensiveZZ-2-1.csv")
+#BPdata <- na.omit(BPdata)
+
+#View(BPdata)
+```
+
+\newpage
+##### Explore the Data
+
+```{r Q1, echo=TRUE, fig.height=4, fig.width=7}
+summary(BPdata)
+
+p1 <- ggplot(BPdata, aes(x = as.factor(Gender))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Gender (0 = Male, 1 = Female)", y = "Frequency", title = "Gender Frequency") +
+  theme_minimal()
+
+p2 <- ggplot(BPdata, aes(y = Age)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Age", title = "Boxplot of Age Distribution") +
+  theme_minimal()
+
+p3 <- ggplot(BPdata, aes(x = as.factor(Gender), y = Age)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(x = "Gender (0 = Male, 1 = Female)", y = "Age", title = "Age Distribution by Gender") +
+  theme_minimal()
+
+grid.arrange(p1, p2, ncol = 2, nrow = 1)
+```
+
+The size of the data is $n>9000$. There are some missing values, but there are complete results for atleast $9000$ observations. There is a good variability in age with a range of 46 to 96 and an average age of 67. For Gender, there are much more data points for males being about $6000$ and only ~$3000$ for females. There could lead to incorrect assumptions when generalizing based on a specific gender, but if you are making a generalization on a population this assumption should be safe.
+
+\newpage
+##### Kaplan–Meier method
+
+```{r KM, echo=TRUE, fig.height=4, fig.width=5}
+km_fit <- survfit(Surv(Time, Death) ~ 1, data=BPdata)
+#km_fit
+autoplot(km_fit)
+```
+
+```{r KM2, echo=TRUE, fig.height=4, fig.width=5}
+km_fit_trt <- survfit(Surv(Time, Death) ~ Treat, data=BPdata)
+km_fit_trt
+
+ggsurvplot(km_fit_trt,
+           pval = TRUE, conf.int = TRUE,
+           risk.table = TRUE, # Add risk table
+           risk.table.col = "strata", # Change risk table color by groups
+           linetype = "strata", # Change line type by groups
+           surv.median.line = "hv", # Specify median survival
+           ylim = c(0.93, 1),
+           ggtheme = theme_bw(), # Change ggplot2 theme
+           palette = c("#E7B800", "#2E9FDF"))
+
+surv_diff <- survdiff(Surv(Time, Death) ~ Treat, data = BPdata)
+surv_diff
+```
+
+The results from the Kaplan-Meier survival analysis suggest that there is a statistically significant difference in survival outcomes between patients receiving standard treatment and those receiving intensive treatment.
+
+\newpage
+##### Univariate Cox Regression method
+
+```{r UC, echo=TRUE, fig.height=4, fig.width=5}
+uc_reg <- coxph(Surv(Time, Death) ~ Treat, data = BPdata)
+uc_reg
+
+ggsurvplot(survfit(uc_reg), color = "#2E9FDF",
+           ylim = c(0.93, 1),
+           ggtheme = theme_minimal(), data=BPdata)
+```
+
+The univariate Cox regression analysis suggests that intensive treatment is associated with a significantly reduced hazard of death in this dataset. Patients receiving intensive treatment have about a 24.3% lower risk of death compared to those receiving standard treatment, and this finding is statistically significant. Therefore, it supports the hypothesis that intensive treatment may be beneficial in reducing mortality risk.
+
+\newpage
+##### Mutiariate Cox Regression method
+
+```{r MVC1, echo=TRUE, fig.height=4, fig.width=5}
+mult_reg <- coxph(Surv(Time, Death) ~ Treat + Age + Gender + Smoking + Triglycerides + BMI + total_DDD, data = BPdata)
+mult_reg
+
+ggsurvplot(survfit(mult_reg), color = "#2E9FDF",
+           ylim = c(0.93, 1),
+           ggtheme = theme_minimal(),
+           title = "Multivariate Cox - Full",
+           data=BPdata)
+```
+
+There is significant evidence suggesting that model has an association in various covariates. The main and most important being the treatment intensiveness.\
+Intensive treatment is associated with a 25% reduction in the hazard of death compared to standard treatment (HR = 0.752). This effect is statistically significant $p=0.0068$.\
+Being female is associated with a 34.4% reduction in the hazard of death compared to males (HR = 0.656). This effect is statistically significant $p=0.003$.
+
+\newpage
+##### Mutiariate Cox Model Selection
+
+```{r MVC2, echo=TRUE, fig.height=4, fig.width=5}
+testPH <- cox.zph(mult_reg)
+testPH
+
+mult_reg2 <- coxph(Surv(Time, Death) ~ Treat + Age + Gender + Smoking, data = BPdata)
+mult_reg2
+
+ggsurvplot(survfit(mult_reg2), color = "#2E9FDF",
+           ylim = c(0.93, 1),
+           ggtheme = theme_minimal(), 
+           title = "Multivariate Cox - Trimed",
+           data=BPdata)
+```
+
+Notice in the trimmed model, we get similar results but utilizing a few less variables.\
+`Surv(Time, Death) ~ Treat + Age + Gender + Smoking`, This model resulted in similar results as the full model, but only adding in covariates for age, gender, and smoking. These indicators were the most influiencial in the outcome of the model.  

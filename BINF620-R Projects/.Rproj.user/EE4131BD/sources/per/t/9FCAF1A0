@@ -1,0 +1,28 @@
+{
+    "id": "9FCAF1A0",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1729354292174.0,
+    "source_on_save": false,
+    "relative_order": 7,
+    "properties": {
+        "id": "6ec4e50d63d2439f88737b424c074ab3",
+        "name": "alive_lda",
+        "title": "alive_lda",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 15762804860256371,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1729354292174,
+    "read_only": false,
+    "read_only_alternatives": []
+}

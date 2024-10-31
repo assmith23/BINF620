@@ -1,0 +1,550 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Assignment 3},
+  pdfauthor={Manning Smith},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Assignment 3}
+\author{Manning Smith}
+\date{2024-10-03}
+
+\begin{document}
+\maketitle
+
+\section{Part 1}\label{part-1}
+
+Suppose we have a hazard function \(h(t)=c\), where \(c\) is a constant.
+Please derive the corresponding survival function \(S(t)\) and
+probability density function \(f(t)\).\\
+
+\textbf{Survival function:}\\
+Given that \(h(t)=c\). We derive the survival function \(S(t)\) as: \[
+  h(t) = -\frac{d}{dt}ln(S(t))
+\] given \(h(t)=c\), we can substitute: \[
+  c = -\frac{d}{dt}ln(S(t))
+\] Integrate both sides with respect to \(t\): \[
+  \int c dt = - \int ln(S(t)) dt
+\] see, \[
+  ct = - ln(S(t))
+\] Let \(ln(S(0))=0\), \[
+  ln(S(t)) = -ct
+\] then take the exponentiation of each side, \[
+  S(t) = e^{-ct}
+\]
+
+Or as the book has it as, \(h(t)=\lambda\): \[
+  S(t) = e^{-\lambda t}
+\]
+
+\textbf{PDF}\\
+\[
+  f(t) =  -\frac{d}{dt} S(t)
+\] Substitute for \(S(t)=e^{-ct}\): \[
+  f(t) =  -\frac{d}{dt} e^{-ct}
+\] Differentiate, \[
+  f(t) = ce^{-ct}
+\] Or as the book has it as, \(h(t)=\lambda\): \[
+  f(t) = \lambda e^{-\lambda t}
+\]
+
+\newpage
+
+\section{Part 2}\label{part-2}
+
+High blood pressure is an important public health concern because it is
+highly prevalent and a risk factor for adverse health outcomes,
+including coronary heart disease, stroke, decompensated heart failure,
+chronic kidney disease, and decline in cognitive function, and death. A
+study was conducted with two strategies, one with the standard target of
+systolic blood pressure140 mm Hg(standard treatment), and the other
+targets a more intensive target of systolic blood pressure120 mm Hg
+(intensive treatment).
+
+\begin{itemize}
+\tightlist
+\item
+  Get familiar with the data. How many observations and variables (which
+  type) are in the dataset?
+\item
+  Estimate the survival curves using the Kaplan--Meier method for each
+  treatment strategy. Show your survival data with censored time, and
+  perform a test for possible differences, i.e., conduct a suitable test
+  to examine the effect of intensive treatment.\\
+\item
+  Conduct Univariate Cox regression to examine the impact of intensive
+  treatment strategy on survival of patients.
+\item
+  Conduct multivariate Cox Regression Analysis to examine the impact of
+  the treatment strategy and other factors on the risk of death using
+  hazard ratios.
+\item
+  Conduct a suitable test and a graphical diagnostic for the
+  proportional hazards assumption for the used Cox Regression modelling.
+\end{itemize}
+
+\subsection{Data Set Details:}\label{data-set-details}
+
+\begin{itemize}
+\tightlist
+\item
+  ID: patient ID
+\item
+  Treat: 1: Intensive treatment; 0: Standard treatment
+\item
+  Age: Patient age at baseline in years
+\item
+  Gender: 1: Female, 0: Male\\
+\item
+  Smoking: Smoking Status, 1: Yes, 0: No.
+\item
+  Triglycerides: Baseline Triglycerides mg/dL
+\item
+  BMI: Baseline Body Mass Index kg/m2
+\item
+  total\_DDD: Baseline defined daily dosage of antihypertensive
+  medications.
+\item
+  Death: All Cause Mortality in the follow-up time period. 1: Death; 0:
+  Alive.
+\item
+  Time: Follow-up time (years) or time to death from enrollment
+\end{itemize}
+
+\subsection{Import Data}\label{import-data}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{BPdata }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"BPIntensiveZZ{-}2{-}1.csv"}\NormalTok{)}
+\CommentTok{\#BPdata \textless{}{-} na.omit(BPdata)}
+
+\CommentTok{\#View(BPdata)}
+\end{Highlighting}
+\end{Shaded}
+
+\newpage
+
+\subparagraph{Explore the Data}\label{explore-the-data}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(BPdata)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##       ID                Treat             Age            Gender      
+##  Length:9308        Min.   :0.0000   Min.   :46.00   Min.   :0.0000  
+##  Class :character   1st Qu.:0.0000   1st Qu.:61.00   1st Qu.:0.0000  
+##  Mode  :character   Median :0.0000   Median :67.00   Median :0.0000  
+##                     Mean   :0.4998   Mean   :67.89   Mean   :0.3554  
+##                     3rd Qu.:1.0000   3rd Qu.:75.00   3rd Qu.:1.0000  
+##                     Max.   :1.0000   Max.   :96.00   Max.   :1.0000  
+##                                                                      
+##     Smoking       Triglycerides       BMI          total_DDD     
+##  Min.   :0.0000   Min.   :  23   Min.   :13.73   Min.   : 0.000  
+##  1st Qu.:0.0000   1st Qu.:  77   1st Qu.:25.88   1st Qu.: 1.000  
+##  Median :0.0000   Median : 107   Median :29.02   Median : 2.000  
+##  Mean   :0.1328   Mean   : 126   Mean   :29.86   Mean   : 2.577  
+##  3rd Qu.:0.0000   3rd Qu.: 150   3rd Qu.:32.91   3rd Qu.: 3.667  
+##  Max.   :1.0000   Max.   :3340   Max.   :69.59   Max.   :22.000  
+##  NA's   :11       NA's   :22     NA's   :61      NA's   :47      
+##      Death              Time      
+##  Min.   :0.00000   Min.   :0.000  
+##  1st Qu.:0.00000   1st Qu.:3.300  
+##  Median :0.00000   Median :3.800  
+##  Mean   :0.04029   Mean   :3.671  
+##  3rd Qu.:0.00000   3rd Qu.:4.350  
+##  Max.   :1.00000   Max.   :5.490  
+## 
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{p1 }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(BPdata, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =} \FunctionTok{as.factor}\NormalTok{(Gender))) }\SpecialCharTok{+}
+  \FunctionTok{geom\_bar}\NormalTok{(}\AttributeTok{fill =} \StringTok{"skyblue"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{x =} \StringTok{"Gender (0 = Male, 1 = Female)"}\NormalTok{, }\AttributeTok{y =} \StringTok{"Frequency"}\NormalTok{, }\AttributeTok{title =} \StringTok{"Gender Frequency"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+
+\NormalTok{p2 }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(BPdata, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{y =}\NormalTok{ Age)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{fill =} \StringTok{"lightblue"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{y =} \StringTok{"Age"}\NormalTok{, }\AttributeTok{title =} \StringTok{"Boxplot of Age Distribution"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+
+\NormalTok{p3 }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(BPdata, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =} \FunctionTok{as.factor}\NormalTok{(Gender), }\AttributeTok{y =}\NormalTok{ Age)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{fill =} \StringTok{"lightblue"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{x =} \StringTok{"Gender (0 = Male, 1 = Female)"}\NormalTok{, }\AttributeTok{y =} \StringTok{"Age"}\NormalTok{, }\AttributeTok{title =} \StringTok{"Age Distribution by Gender"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+
+\FunctionTok{grid.arrange}\NormalTok{(p1, p2, }\AttributeTok{ncol =} \DecValTok{2}\NormalTok{, }\AttributeTok{nrow =} \DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Assignment-3_files/figure-latex/Q1-1.pdf}
+
+The size of the data is \(n>9000\). There are some missing values, but
+there are complete results for atleast \(9000\) observations. There is a
+good variability in age with a range of 46 to 96 and an average age of
+67. For Gender, there are much more data points for males being about
+\(6000\) and only \textasciitilde{}\(3000\) for females. There could
+lead to incorrect assumptions when generalizing based on a specific
+gender, but if you are making a generalization on a population this
+assumption should be safe.
+
+\newpage
+
+\subparagraph{Kaplan--Meier method}\label{kaplanmeier-method}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{km\_fit }\OtherTok{\textless{}{-}} \FunctionTok{survfit}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(Time, Death) }\SpecialCharTok{\textasciitilde{}} \DecValTok{1}\NormalTok{, }\AttributeTok{data=}\NormalTok{BPdata)}
+\CommentTok{\#km\_fit}
+\FunctionTok{autoplot}\NormalTok{(km\_fit)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Assignment-3_files/figure-latex/KM-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{km\_fit\_trt }\OtherTok{\textless{}{-}} \FunctionTok{survfit}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(Time, Death) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Treat, }\AttributeTok{data=}\NormalTok{BPdata)}
+\NormalTok{km\_fit\_trt}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call: survfit(formula = Surv(Time, Death) ~ Treat, data = BPdata)
+## 
+##            n events median 0.95LCL 0.95UCL
+## Treat=0 4656    213     NA      NA      NA
+## Treat=1 4652    162     NA      NA      NA
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggsurvplot}\NormalTok{(km\_fit\_trt,}
+           \AttributeTok{pval =} \ConstantTok{TRUE}\NormalTok{, }\AttributeTok{conf.int =} \ConstantTok{TRUE}\NormalTok{,}
+           \AttributeTok{risk.table =} \ConstantTok{TRUE}\NormalTok{, }\CommentTok{\# Add risk table}
+           \AttributeTok{risk.table.col =} \StringTok{"strata"}\NormalTok{, }\CommentTok{\# Change risk table color by groups}
+           \AttributeTok{linetype =} \StringTok{"strata"}\NormalTok{, }\CommentTok{\# Change line type by groups}
+           \AttributeTok{surv.median.line =} \StringTok{"hv"}\NormalTok{, }\CommentTok{\# Specify median survival}
+           \AttributeTok{ylim =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.93}\NormalTok{, }\DecValTok{1}\NormalTok{),}
+           \AttributeTok{ggtheme =} \FunctionTok{theme\_bw}\NormalTok{(), }\CommentTok{\# Change ggplot2 theme}
+           \AttributeTok{palette =} \FunctionTok{c}\NormalTok{(}\StringTok{"\#E7B800"}\NormalTok{, }\StringTok{"\#2E9FDF"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in .add_surv_median(p, fit, type = surv.median.line, fun = fun, :
+## Median survival not reached.
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: Removed 1 row containing missing values or values outside the scale range
+## (`geom_text()`).
+## Removed 1 row containing missing values or values outside the scale range
+## (`geom_text()`).
+\end{verbatim}
+
+\includegraphics{Assignment-3_files/figure-latex/KM2-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{surv\_diff }\OtherTok{\textless{}{-}} \FunctionTok{survdiff}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(Time, Death) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Treat, }\AttributeTok{data =}\NormalTok{ BPdata)}
+\NormalTok{surv\_diff}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call:
+## survdiff(formula = Surv(Time, Death) ~ Treat, data = BPdata)
+## 
+##            N Observed Expected (O-E)^2/E (O-E)^2/V
+## Treat=0 4656      213      187      3.60      7.18
+## Treat=1 4652      162      188      3.58      7.18
+## 
+##  Chisq= 7.2  on 1 degrees of freedom, p= 0.007
+\end{verbatim}
+
+The results from the Kaplan-Meier survival analysis suggest that there
+is a statistically significant difference in survival outcomes between
+patients receiving standard treatment and those receiving intensive
+treatment.
+
+\newpage
+
+\subparagraph{Univariate Cox Regression
+method}\label{univariate-cox-regression-method}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{uc\_reg }\OtherTok{\textless{}{-}} \FunctionTok{coxph}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(Time, Death) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Treat, }\AttributeTok{data =}\NormalTok{ BPdata)}
+\NormalTok{uc\_reg}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call:
+## coxph(formula = Surv(Time, Death) ~ Treat, data = BPdata)
+## 
+##          coef exp(coef) se(coef)      z       p
+## Treat -0.2785    0.7569   0.1042 -2.671 0.00755
+## 
+## Likelihood ratio test=7.2  on 1 df, p=0.007273
+## n= 9308, number of events= 375
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggsurvplot}\NormalTok{(}\FunctionTok{survfit}\NormalTok{(uc\_reg), }\AttributeTok{color =} \StringTok{"\#2E9FDF"}\NormalTok{,}
+           \AttributeTok{ylim =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.93}\NormalTok{, }\DecValTok{1}\NormalTok{),}
+           \AttributeTok{ggtheme =} \FunctionTok{theme\_minimal}\NormalTok{(), }\AttributeTok{data=}\NormalTok{BPdata)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: Now, to change color palette, use the argument palette= '#2E9FDF'
+## instead of color = '#2E9FDF'
+\end{verbatim}
+
+\includegraphics{Assignment-3_files/figure-latex/UC-1.pdf}
+
+The univariate Cox regression analysis suggests that intensive treatment
+is associated with a significantly reduced hazard of death in this
+dataset. Patients receiving intensive treatment have about a 24.3\%
+lower risk of death compared to those receiving standard treatment, and
+this finding is statistically significant. Therefore, it supports the
+hypothesis that intensive treatment may be beneficial in reducing
+mortality risk.
+
+\newpage
+
+\subparagraph{Mutiariate Cox Regression
+method}\label{mutiariate-cox-regression-method}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{mult\_reg }\OtherTok{\textless{}{-}} \FunctionTok{coxph}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(Time, Death) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Treat }\SpecialCharTok{+}\NormalTok{ Age }\SpecialCharTok{+}\NormalTok{ Gender }\SpecialCharTok{+}\NormalTok{ Smoking }\SpecialCharTok{+}\NormalTok{ Triglycerides }\SpecialCharTok{+}\NormalTok{ BMI }\SpecialCharTok{+}\NormalTok{ total\_DDD, }\AttributeTok{data =}\NormalTok{ BPdata)}
+\NormalTok{mult\_reg}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call:
+## coxph(formula = Surv(Time, Death) ~ Treat + Age + Gender + Smoking + 
+##     Triglycerides + BMI + total_DDD, data = BPdata)
+## 
+##                     coef  exp(coef)   se(coef)      z        p
+## Treat         -0.2845553  0.7523488  0.1052296 -2.704 0.006848
+## Age            0.0785771  1.0817467  0.0063812 12.314  < 2e-16
+## Gender        -0.4209925  0.6563950  0.1167065 -3.607 0.000309
+## Smoking        1.0237997  2.7837522  0.1496975  6.839 7.97e-12
+## Triglycerides  0.0010290  1.0010296  0.0004084  2.520 0.011744
+## BMI            0.0025799  1.0025833  0.0105005  0.246 0.805917
+## total_DDD      0.0535501  1.0550099  0.0234218  2.286 0.022235
+## 
+## Likelihood ratio test=199.3  on 7 df, p=< 2.2e-16
+## n= 9170, number of events= 368 
+##    (138 observations deleted due to missingness)
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggsurvplot}\NormalTok{(}\FunctionTok{survfit}\NormalTok{(mult\_reg), }\AttributeTok{color =} \StringTok{"\#2E9FDF"}\NormalTok{,}
+           \AttributeTok{ylim =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.93}\NormalTok{, }\DecValTok{1}\NormalTok{),}
+           \AttributeTok{ggtheme =} \FunctionTok{theme\_minimal}\NormalTok{(),}
+           \AttributeTok{title =} \StringTok{"Multivariate Cox {-} Full"}\NormalTok{,}
+           \AttributeTok{data=}\NormalTok{BPdata)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: Now, to change color palette, use the argument palette= '#2E9FDF'
+## instead of color = '#2E9FDF'
+\end{verbatim}
+
+\includegraphics{Assignment-3_files/figure-latex/MVC1-1.pdf}
+
+There is significant evidence suggesting that model has an association
+in various covariates. The main and most important being the treatment
+intensiveness.\\
+Intensive treatment is associated with a 25\% reduction in the hazard of
+death compared to standard treatment (HR = 0.752). This effect is
+statistically significant \(p=0.0068\).\\
+Being female is associated with a 34.4\% reduction in the hazard of
+death compared to males (HR = 0.656). This effect is statistically
+significant \(p=0.003\).
+
+\newpage
+
+\subparagraph{Mutiariate Cox Model
+Selection}\label{mutiariate-cox-model-selection}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{testPH }\OtherTok{\textless{}{-}} \FunctionTok{cox.zph}\NormalTok{(mult\_reg)}
+\NormalTok{testPH}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                  chisq df    p
+## Treat         0.245354  1 0.62
+## Age           0.003052  1 0.96
+## Gender        0.068313  1 0.79
+## Smoking       1.813669  1 0.18
+## Triglycerides 0.009678  1 0.92
+## BMI           0.141346  1 0.71
+## total_DDD     0.000241  1 0.99
+## GLOBAL        2.458359  7 0.93
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{mult\_reg2 }\OtherTok{\textless{}{-}} \FunctionTok{coxph}\NormalTok{(}\FunctionTok{Surv}\NormalTok{(Time, Death) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Treat }\SpecialCharTok{+}\NormalTok{ Age }\SpecialCharTok{+}\NormalTok{ Gender }\SpecialCharTok{+}\NormalTok{ Smoking, }\AttributeTok{data =}\NormalTok{ BPdata)}
+\NormalTok{mult\_reg2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call:
+## coxph(formula = Surv(Time, Death) ~ Treat + Age + Gender + Smoking, 
+##     data = BPdata)
+## 
+##              coef exp(coef)  se(coef)      z        p
+## Treat   -0.286750  0.750699  0.104391 -2.747 0.006016
+## Age      0.075985  1.078946  0.005959 12.751  < 2e-16
+## Gender  -0.410621  0.663238  0.115224 -3.564 0.000366
+## Smoking  1.015347  2.760322  0.146082  6.951 3.64e-12
+## 
+## Likelihood ratio test=191.1  on 4 df, p=< 2.2e-16
+## n= 9297, number of events= 374 
+##    (11 observations deleted due to missingness)
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggsurvplot}\NormalTok{(}\FunctionTok{survfit}\NormalTok{(mult\_reg2), }\AttributeTok{color =} \StringTok{"\#2E9FDF"}\NormalTok{,}
+           \AttributeTok{ylim =} \FunctionTok{c}\NormalTok{(}\FloatTok{0.93}\NormalTok{, }\DecValTok{1}\NormalTok{),}
+           \AttributeTok{ggtheme =} \FunctionTok{theme\_minimal}\NormalTok{(), }
+           \AttributeTok{title =} \StringTok{"Multivariate Cox {-} Trimed"}\NormalTok{,}
+           \AttributeTok{data=}\NormalTok{BPdata)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: Now, to change color palette, use the argument palette= '#2E9FDF'
+## instead of color = '#2E9FDF'
+\end{verbatim}
+
+\includegraphics{Assignment-3_files/figure-latex/MVC2-1.pdf}
+
+Notice in the trimmed model, we get similar results but utilizing a few
+less variables.\\
+\texttt{Surv(Time,\ Death)\ \textasciitilde{}\ Treat\ +\ Age\ +\ Gender\ +\ Smoking},
+This model resulted in similar results as the full model, but only
+adding in covariates for age, gender, and smoking. These indicators were
+the most influiencial in the outcome of the model.
+
+\end{document}

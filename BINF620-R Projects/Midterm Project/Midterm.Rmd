@@ -24,15 +24,8 @@ library(naivebayes)
 library(MASS)
 set.seed(30)
 ```
+
 # Part 1
-
-A study was conducted to test the impact of new drug in treating hyperglycemia in patients with diabetes mellitus.  The primary outcome was the total number of deaths.  . The data consists of a total of more than 1200 patients, met eligibility criteria for the study for the randomized clinical trial (Triinhibitor vs. placebo), data dictionary is provided below.
-
-The primary end point was the total number of deaths.  
-- Conduct survival analysis to examine the impact of Triinhibitor vs. placebo on the survival.  You should indicate how you will define the event, and estimate the survival curves using the Kaplan–Meier method.  Show your survival data with censored time, and perform a test for possible differences, i.e., conduct a suitable test to examine the effect of Triinhibitor vs. placebo.   
-- Conduct multivariate Cox Regression Analysis to examine the impact of the Triinhibitor vs. placebo and other factors on the risk of death using hazard ratios.
-- Conduct a suitable test and a graphical diagnostic for the proportional hazards assumption for the used Cox Regression modelling.
-
 
 ## Import Data
 ### Data Dictionary of the dataset
@@ -68,26 +61,33 @@ The primary end point was the total number of deaths.
 
 ```{r import_1, echo=TRUE}
 p1Data <- read.csv("BINF620BigData-1.csv")
-filtered_data <- data %>%
-  filter(Event_Type %in% c("DEATH", "WITHDRAWAL BY SUBJECT"))
+
 #View(p1Data)
 ```
 
-```{r filterData, echo=TRUE}
+```{r cleanFilter, echo=TRUE}
+# Clean Raw
 p1Data <- p1Data %>% rename(Event_type = `Reason.of.End.the.Study`)
+p1Data <- p1Data %>% rename(Time = `Months.of.Follow.up`)
+
+# Filter Data
+filtered_p1Data <- p1Data %>%
+  filter(Event_type %in% c("DEATH", "STUDY TERMINATED BY SPONSOR"))
+```
+
+```{r cleanData2, echo=TRUE}
 p1Data$Event <- ifelse(p1Data$Event_type == "DEATH", 1, 0)
 p1Data$Gender <- ifelse(p1Data$Gender == "M", 0, 
                       ifelse(p1Data$Gender == "F", 1, NA))
+p1Data$Group <- factor(p1Data$Group, levels = c("Placebo", "Triinhibitor"))
+
+filtered_p1Data$Event <- ifelse(filtered_p1Data$Event_type == "DEATH", 1, 0)
+filtered_p1Data$Gender <- ifelse(filtered_p1Data$Gender == "M", 0,
+                      ifelse(filtered_p1Data$Gender == "F", 1, NA))
+filtered_p1Data$Group <- factor(filtered_p1Data$Group, levels = c("Placebo", "Triinhibitor"))
 ```
 
-```{r cleanData, echo=TRUE}
-p1Data <- p1Data %>% rename(Event_type = `Reason.of.End.the.Study`)
-p1Data$Event <- ifelse(p1Data$Event_type == "DEATH", 1, 0)
-p1Data$Gender <- ifelse(p1Data$Gender == "M", 0, 
-                      ifelse(p1Data$Gender == "F", 1, NA))
-```
-
-```{r exploreData1, echo=TRUE}
+```{r exploreData1, echo=TRUE, fig.height=4, fig.width=5}
 summary(p1Data)
 
 p1 <- ggplot(p1Data, aes(x = as.factor(Gender))) +
@@ -109,9 +109,14 @@ p3 <- ggplot(p1Data, aes(x = as.factor(Gender), y = Age)) +
   theme_minimal()
 
 grid.arrange(p1, p2, ncol = 2, nrow = 1)
+
+ggplot(p1Data, aes(x = as.factor(Event))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Gender (0 = No Death, 1 = Death)", y = "Frequency", title = "Death Frequency") +
+  theme_minimal()
 ```
 
-```{r exploreData2, echo=TRUE}
+```{r exploreData2, echo=TRUE, fig.height=4, fig.width=7}
 summary(p1Data)
 
 ggplot(p1Data, aes(x = as.factor(Event_type))) +
@@ -120,34 +125,54 @@ ggplot(p1Data, aes(x = as.factor(Event_type))) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 ```
+Notice that there are only a few records for `Lost to Follow-up`, `Physician Decision`, and `Withdrawal by Subject`. Alongside of the generic test, another test will be done to see if there is a difference in results with these events filtered out.
 
+The result of filtering out these events.
 
 ```{r km, echo=TRUE}
 # Kaplan–Meier method
-km_fit <- survfit(Surv(Months.of.Follow.up, Reason.of.End.the.Study) ~ 1, data=p1Data)
-#km_fit
-autoplot(km_fit)
+km_fit <- survfit(Surv(Time, Event) ~ Group, data=p1Data)
+p1 <- autoplot(km_fit)
 
-data$event <- ifelse(data$Reason_of_End_the_Study == "DEATH", 1, 0)
+# Filtered
+km_fit_fil <- survfit(Surv(Time, Event) ~ Group, data=filtered_p1Data)
+p2 <- autoplot(km_fit_fil)
+
+grid.arrange(p1, p2, ncol = 1, nrow = 2)
 ```
 
+```{r km_compare, echo=TRUE}
+km_fit
+km_fit_fil
+```
+
+Notice two different survival analysis have been done.
+
+`Surv(Time, Event) ~ Group`: where Time is `Months.of.Follow.up` and Event is `Reason.of.End.the.Study` categorized into a binary relationship as either Death or Other and Group is factored by Placebo or Treatment.
+
+`Surv(Time, Event) ~ Group`: where Time is `Months.of.Follow.up` and Event is `Reason.of.End.the.Study` categorized into a binary relationship as Death or "STUDY TERMINATED BY SPONSOR" and Group is factored by Placebo or Treatment.
+
+Note there was no difference is these analysis, thus we will continue with the complete unfiltered dataset.
+
+```{r cox, echo=TRUE}
+cox_fit <- coxph(Surv(Time, Event) ~ Group + Age + Gender + Ethnicity + White + 
+                 LVEF + A1c + SBP + DBP + BMI + Ischemic.Status + GFR, data = p1Data)
+
+summary(cox_fit)
+```
+
+```{r hazard_ratio, echo=TRUE}
+haz_ratio <- exp(coef(cox_fit))  # Hazard Ratios
+haz_ratioINT <- exp(confint(cox_fit))  # 95% CI for Hazard Ratios
+
+# Schoenfeld residuals test for proportional hazards assumption
+ph_test <- cox.zph(cox_fit)
+ph_test
+```
+
+
+
 # Part 2
-
-PRAMS, the Pregnancy Risk Assessment Monitoring System, is a surveillance project of the Centers for Disease Control and Prevention (CDC).  PRAMS collects state-specific, population-based data on maternal attitudes and experiences before, during, and shortly after pregnancy. PRAMS surveillance currently covers about 83% of all U.S. births.
-
-## Questions
-- Provide the structure of the data set, including length, data type, names, and the components of the data set.
-- Examine variables with zero variance or near-zero variance;
-- Explore the correlation matrix with visualization;
-- Examine the missing-ness including the visualization of missing values, identifying variables that may need attention, and conducting the imputation for handling missing values in the data set, and showing part of the imputed results.
-
-We will try to predict MH_PPDPR (MH: depress since birth) via methods we have learned this semester so far, using other variables (PGWT_GN: Pregnant weight gain/lost; MOM_CM:  Moms height – centimeters; MOM_BMI: MOM BODY MASS INDEX; MOMCIG:   Number of Cigarettes Per Day; CIG_PRIOR : No. of cigarettes smoked - prior to pregnant; and MOM_LBKG : Moms weight -- before pregnant); i.e: MH_PPDPR (MH: depress since birth) is the response (outcome, or target), and the predictors are PGWT_GN, MOM_CM, MOM_BMI, MOMCIG , CIG_PRIOR , MOM_LBKG, and DDS_INS(DDS – insurance).  Note that you should depart the data into training set and testing set.
-
-- Propose a way to handle the outcome variable MH_PPDPR (MH: depress since birth);
-- Conduct model selection procedure via suitable criteria;
-- Conduct a type of generative model analysis, provide the results in prediction, and comments on your results;
-- Conduct a type of instance-based learning analysis, provide the results in prediction, and comments on your results;
-- Conduct a type of regularization analysis, provide the results in prediction, and comments on your results;
 
 ## Import Data
 ### Data Dictionary of the dataset
@@ -177,24 +202,12 @@ We will try to predict MH_PPDPR (MH: depress since birth) via methods we have le
   - 5 = NEVER
 
 ```{r import_2, echo=TRUE}
-p2Data <- read.csv("BINF620BigData-1.csv")
+p2Data <- read.csv("PARMSOct2020.csv")
 
 #View(p2Data)
 ```
 
-# Question 1
-
-```{r Q1, echo=TRUE}
-
-```
-
-### 1a)
-
-```{r Q1a, echo=TRUE}
-```
-
-\newpage
-# Question 2
-
-```{r Q2, echo=TRUE}
+```{r exploreData3, echo=TRUE}
+summary(p2Data)
+str(p2Data)
 ```

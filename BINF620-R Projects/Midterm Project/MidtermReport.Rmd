@@ -1,0 +1,207 @@
+---
+title: "BINF620 - Midterm"
+author: "Manning Smith"
+date: "11/6/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(survival)
+library(ranger)
+library(ggplot2)
+library(ggfortify)
+library("survminer")
+library(gridExtra)
+library(caret)
+library(knitr)
+library(corrplot)
+library(ggcorrplot)
+library(mice)
+library(tidyr)
+library(VIM)
+library(naivebayes)
+library(MASS)
+set.seed(15)
+```
+
+# Import Data
+```{r import, echo=TRUE}
+# Part 1
+p1Data <- read.csv("BINF620BigData-1.csv")
+#View(p1Data)
+
+# Part 2
+p2Data <- read.csv("PARMSOct2020.csv")
+#View(p2Data)
+```
+
+### Data Dictionary | Data Set 1
+- PID:    Patient ID
+- Age:    in years
+- Gender:   F/M, Female/Male
+- Ethnicity:
+  - HISPANIC OR LATINO
+  - NOT HISPANIC OR LA
+  - NOT REPORTED
+- White:
+  - 0:  White
+  - 1:  Non-white
+- LVEF:   Left ventricular ejection fraction
+- A1c:    Average amount of glucose (sugar) in blood
+- SBP:    Systolic blood pressure,  mm Hg
+- DBP:    Diastolic blood pressure,  mm Hg
+- BMI:    Body mass index $\frac{kg}{m^2}$
+- Ischemic Status:
+  - Ischemic
+  - Non-Ischemic
+- Reason of End the Study:
+  - STUDY TERMINATED BY SPONSOR
+  - DEATH
+  - LOST TO FOLLOW-UP
+  - PHYSICIAN DECISION
+  - WITHDEAWAL BY SUBJECT
+- Months of Follow-up:  In months
+- Group:
+  - Placebo
+  - Triinhibitor
+- GFR:    Glomerular filtration rate
+  
+### Data Dictionary | Data Set 2
+- ID:  Subject Identifier
+- ALIVE:  1--infant alive; 2—infant not alive;
+- BF5EVER: Breastfeed--ever, 1=No, 2=Yes.
+- BF5LNGTH: duration -- length of time in weeks
+- PGWT_GN: Pregnant weight gain/lost
+- MOM_CM:  Moms height – centimeters
+- MOM_BMI:  MOM BODY MASS INDEX
+- MOMCIG:   Number of Cigarettes Per Day
+- CIG_PRIOR : No. of cigarettes smoked - prior to pregnant 
+- MOM_LBKG : Moms weight -- before pregnant
+- DDS_INS DDS: insurance
+  - .A = NOT APPLICABLE.B = DK/BLANK
+  - .N = NOT RECORDED
+  - .U = UNKNOWN
+  - 1 = NO
+  - 2 = YES
+- MH_PPDPR MH: depress since birth
+  - .B = BLANK/DK
+  - .S = SKIP
+  - 1 = ALWAYS
+  - 2 = OFTEN/ALMOST ALWAYS
+  - 3 = SOMETIMES
+  - 4 = RARELY
+  - 5 = NEVER
+  
+\newpage
+# Part 1
+## Introduction
+
+```{r p1_dataPeak, echo=TRUE}
+summary(p1Data)
+```
+
+## Data Exploration
+
+```{r p1_cleanFilter, echo=TRUE}
+# Clean Raw
+p1Data <- p1Data %>% rename(Event_type = `Reason.of.End.the.Study`)
+p1Data <- p1Data %>% rename(Time = `Months.of.Follow.up`)
+
+# Filter Data
+filtered_p1Data <- p1Data %>%
+  filter(Event_type %in% c("DEATH", "STUDY TERMINATED BY SPONSOR"))
+
+p1Data$Event <- ifelse(p1Data$Event_type == "DEATH", 1, 0)
+p1Data$Gender <- ifelse(p1Data$Gender == "M", 0, 
+                      ifelse(p1Data$Gender == "F", 1, NA))
+p1Data$Group <- factor(p1Data$Group, levels = c("Placebo", "Triinhibitor"))
+
+filtered_p1Data$Event <- ifelse(filtered_p1Data$Event_type == "DEATH", 1, 0)
+filtered_p1Data$Gender <- ifelse(filtered_p1Data$Gender == "M", 0,
+                      ifelse(filtered_p1Data$Gender == "F", 1, NA))
+filtered_p1Data$Group <- factor(filtered_p1Data$Group, levels = c("Placebo", "Triinhibitor"))
+```
+
+```{r p1_exploreData, echo=TRUE, fig.height=4, fig.width=5}
+summary(p1Data)
+
+genFreq <- ggplot(p1Data, aes(x = as.factor(Gender))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Gender (0 = Male, 1 = Female)", y = "Frequency", title = "Gender Frequency") +
+  theme_minimal()
+
+ageDis <- ggplot(p1Data, aes(y = Age)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Age", title = "Boxplot of Age Distribution") +
+  theme_classic() + 
+  theme(axis.title.x = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
+
+grid.arrange(genFreq, ageDis, ncol = 2, nrow = 1)
+
+deathFreq <- ggplot(p1Data, aes(x = as.factor(Event))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Gender (0 = No Death, 1 = Death)", y = "Frequency", title = "Death Frequency") +
+  theme_minimal()
+
+studyEnd <- ggplot(p1Data, aes(x = as.factor(Event_type))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Reason", y = "Frequency", title = "Reason for the End of the Study") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+grid.arrange(deathFreq, studyEnd, ncol = 2, nrow = 1)
+```
+
+## Analysis
+
+```{r p1_models, echo=TRUE}
+### Kaplan–Meier method
+km_fit <- survfit(Surv(Time, Event) ~ Group, data=p1Data)
+p1 <- autoplot(km_fit)
+
+# Filtered
+km_fit_fil <- survfit(Surv(Time, Event) ~ Group, data=filtered_p1Data)
+p2 <- autoplot(km_fit_fil)
+
+grid.arrange(p1, p2, ncol = 1, nrow = 2)
+
+### Cox
+cox_fit <- coxph(Surv(Time, Event) ~ Group + Age + Gender + Ethnicity + White + 
+                 LVEF + A1c + SBP + DBP + BMI + Ischemic.Status + GFR, data = p1Data)
+
+### Hazard
+haz_ratio <- exp(coef(cox_fit))  # Hazard Ratios
+haz_ratioINT <- exp(confint(cox_fit))  # 95% CI for Hazard Ratios
+
+# Schoenfeld residuals test for proportional hazards assumption
+ph_test <- cox.zph(cox_fit)
+```
+
+## Results
+
+```{r results, echo=TRUE}
+# View Results
+km_fit
+km_fit_fil
+summary(cox_fit)
+ph_test
+```
+
+### Conclusion
+
+
+\newpage
+# Part 2
+## Introduction
+
+## Data Exploration
+
+## Analysis
+
+## Results
+
+### Conclusion

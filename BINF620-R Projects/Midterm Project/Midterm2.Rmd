@@ -1,0 +1,449 @@
+---
+title: "Midterm Project"
+author: "Manning Smith"
+date: "11/6/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(survival)
+library(ranger)
+library(ggplot2)
+library(ggfortify)
+library("survminer")
+library(gridExtra)
+library(caret)
+library(knitr)
+library(corrplot)
+library(ggcorrplot)
+library(mice)
+library(tidyr)
+library(VIM)
+library(naivebayes)
+library(MASS)
+set.seed(15)
+```
+
+# Part 1
+
+## Import Data
+### Data Dictionary of the dataset
+- PID:    Patient ID
+- Age:    in years
+- Gender:   F/M, Female/Male
+- Ethnicity:
+  - HISPANIC OR LATINO
+  - NOT HISPANIC OR LA
+  - NOT REPORTED
+- White:
+  - 0:  White
+  - 1:  Non-white
+- LVEF:   Left ventricular ejection fraction
+- A1c:    Average amount of glucose (sugar) in blood
+- SBP:    Systolic blood pressure,  mm Hg
+- DBP:    Diastolic blood pressure,  mm Hg
+- BMI:    Body mass index $\frac{kg}{m^2}$
+- Ischemic Status:
+  - Ischemic
+  - Non-Ischemic
+- Reason of End the Study:
+  - STUDY TERMINATED BY SPONSOR
+  - DEATH
+  - LOST TO FOLLOW-UP
+  - PHYSICIAN DECISION
+  - WITHDEAWAL BY SUBJECT
+- Months of Follow-up:  In months
+- Group:
+  - Placebo
+  - Triinhibitor
+- GFR:    Glomerular filtration rate
+
+```{r import_1, echo=TRUE}
+p1Data <- read.csv("BINF620BigData-1.csv")
+
+#View(p1Data)
+```
+
+```{r cleanFilter, echo=TRUE}
+# Clean Raw
+p1Data <- p1Data %>% rename(Event_type = `Reason.of.End.the.Study`)
+p1Data <- p1Data %>% rename(Time = `Months.of.Follow.up`)
+
+# Filter Data
+filtered_p1Data <- p1Data %>%
+  filter(Event_type %in% c("DEATH", "STUDY TERMINATED BY SPONSOR"))
+```
+
+```{r cleanData2, echo=TRUE}
+p1Data$Event <- ifelse(p1Data$Event_type == "DEATH", 1, 0)
+p1Data$Gender <- ifelse(p1Data$Gender == "M", 0, 
+                      ifelse(p1Data$Gender == "F", 1, NA))
+p1Data$Group <- factor(p1Data$Group, levels = c("Placebo", "Triinhibitor"))
+
+filtered_p1Data$Event <- ifelse(filtered_p1Data$Event_type == "DEATH", 1, 0)
+filtered_p1Data$Gender <- ifelse(filtered_p1Data$Gender == "M", 0,
+                      ifelse(filtered_p1Data$Gender == "F", 1, NA))
+filtered_p1Data$Group <- factor(filtered_p1Data$Group, levels = c("Placebo", "Triinhibitor"))
+```
+
+```{r exploreData1, echo=TRUE, fig.height=4, fig.width=5}
+summary(p1Data)
+
+p1 <- ggplot(p1Data, aes(x = as.factor(Gender))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Gender (0 = Male, 1 = Female)", y = "Frequency", title = "Gender Frequency") +
+  theme_minimal()
+
+p2 <- ggplot(p1Data, aes(y = Age)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Age", title = "Boxplot of Age Distribution") +
+  theme_classic() + 
+  theme(axis.title.x = element_blank(), 
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
+
+p3 <- ggplot(p1Data, aes(x = as.factor(Gender), y = Age)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(x = "Gender (0 = Male, 1 = Female)", y = "Age", title = "Age Distribution by Gender") +
+  theme_minimal()
+
+grid.arrange(p1, p2, ncol = 2, nrow = 1)
+
+ggplot(p1Data, aes(x = as.factor(Event))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Gender (0 = No Death, 1 = Death)", y = "Frequency", title = "Death Frequency") +
+  theme_minimal()
+```
+
+```{r exploreData2, echo=TRUE, fig.height=4, fig.width=7}
+summary(p1Data)
+
+ggplot(p1Data, aes(x = as.factor(Event_type))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Reason", y = "Frequency", title = "Reason for the End of the Study") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+Notice that there are only a few records for `Lost to Follow-up`, `Physician Decision`, and `Withdrawal by Subject`. Alongside of the generic test, another test will be done to see if there is a difference in results with these events filtered out.
+
+The result of filtering out these events.
+
+```{r km, echo=TRUE}
+# Kaplan–Meier method
+km_fit <- survfit(Surv(Time, Event) ~ Group, data=p1Data)
+p1 <- autoplot(km_fit)
+
+# Filtered
+km_fit_fil <- survfit(Surv(Time, Event) ~ Group, data=filtered_p1Data)
+p2 <- autoplot(km_fit_fil)
+
+grid.arrange(p1, p2, ncol = 1, nrow = 2)
+```
+
+```{r km_compare, echo=TRUE}
+km_fit
+km_fit_fil
+```
+
+Notice two different survival analysis have been done.
+
+`Surv(Time, Event) ~ Group`: where Time is `Months.of.Follow.up` and Event is `Reason.of.End.the.Study` categorized into a binary relationship as either Death or Other and Group is factored by Placebo or Treatment.
+
+`Surv(Time, Event) ~ Group`: where Time is `Months.of.Follow.up` and Event is `Reason.of.End.the.Study` categorized into a binary relationship as Death or "STUDY TERMINATED BY SPONSOR" and Group is factored by Placebo or Treatment.
+
+Note there was no difference is these analysis, thus we will continue with the complete unfiltered dataset.
+
+```{r cox, echo=TRUE}
+cox_fit <- coxph(Surv(Time, Event) ~ Group + Age + Gender + Ethnicity + White + 
+                 LVEF + A1c + SBP + DBP + BMI + Ischemic.Status + GFR, data = p1Data)
+
+summary(cox_fit)
+```
+
+```{r hazard_ratio, echo=TRUE}
+haz_ratio <- exp(coef(cox_fit))  # Hazard Ratios
+haz_ratioINT <- exp(confint(cox_fit))  # 95% CI for Hazard Ratios
+
+# Schoenfeld residuals test for proportional hazards assumption
+ph_test <- cox.zph(cox_fit)
+ph_test
+```
+
+
+
+# Part 2
+
+## Import Data
+### Data Dictionary of the dataset
+- ID:  Subject Identifier
+- ALIVE:  1--infant alive; 2—infant not alive;
+- BF5EVER: Breastfeed--ever, 1=No, 2=Yes.
+- BF5LNGTH: duration -- length of time in weeks
+- PGWT_GN: Pregnant weight gain/lost
+- MOM_CM:  Moms height – centimeters
+- MOM_BMI:  MOM BODY MASS INDEX
+- MOMCIG:   Number of Cigarettes Per Day
+- CIG_PRIOR : No. of cigarettes smoked - prior to pregnant 
+- MOM_LBKG : Moms weight -- before pregnant
+- DDS_INS DDS: insurance
+  - .A = NOT APPLICABLE.B = DK/BLANK
+  - .N = NOT RECORDED
+  - .U = UNKNOWN
+  - 1 = NO
+  - 2 = YES
+- MH_PPDPR MH: depress since birth
+  - .B = BLANK/DK
+  - .S = SKIP
+  - 1 = ALWAYS
+  - 2 = OFTEN/ALMOST ALWAYS
+  - 3 = SOMETIMES
+  - 4 = RARELY
+  - 5 = NEVER
+
+```{r import_2, echo=TRUE}
+p2Data <- read.csv("PARMSOct2020.csv")
+
+#View(p2Data)
+```
+
+```{r exploreData3, echo=TRUE}
+summary(p2Data)
+str(p2Data)
+```
+
+```{r DataPeak1, echo=TRUE, fig.height=4, fig.width=7}
+p1 <- ggplot(p2Data, aes(x = as.factor(ALIVE))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Alive (1 = Alive, 2 = Dead)", y = "Frequency", title = "Alive Frequency") +
+  theme_minimal()
+
+p2 <- ggplot(p2Data, aes(y = MOM_LBKG)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Mom Weight (Before Pregant)", title = "Mom Weight Before Pregant") +
+  theme_minimal()
+
+p3 <- ggplot(p2Data, aes(y = MOM_BMI)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Mom BMI", title = "Mom BMI") +
+  theme_minimal()
+
+p4 <- ggplot(p2Data, aes(y = CIG_PRIOR)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Cigarettes Smoked", title = "Cigarettes Smoked Before Pregant") +
+  theme_minimal()
+
+
+grid.arrange(p2, p3, ncol = 2, nrow = 1)
+grid.arrange(p1, p4, ncol = 2, nrow = 1)
+```
+
+```{r DataPeak2, echo=TRUE, fig.height=4, fig.width=7}
+ggplot(p2Data, aes(x = as.factor(MH_PPDPR))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "MH_PPDPR", y = "Frequency", title = "Depress Since Birth Frequency") +
+  theme_minimal()
+```
+
+```{r zeroVar, echo=TRUE}
+nzv <- nearZeroVar(p2Data, saveMetrics = TRUE)
+nzv_vars <- rownames(nzv[nzv$nzv == TRUE, ])
+nzv_vars
+```
+
+```{r correlation1, echo=TRUE, fig.height=3, fig.width=5}
+p1 <- ggplot(p2Data, aes(x = MOM_LBKG, y = MOM_CM)) +
+  geom_point(alpha = 0.1) +
+  labs(x = "Mom Weight Before Pregant (lbs)", y = "Mom Height (cm)", title = "Mom Weight vs Mom Height") +
+  geom_smooth(method = "lm", se = FALSE)
+
+p2 <- ggplot(p2Data, aes(x = MOM_LBKG, y = MOM_BMI)) +
+  geom_point(alpha = 0.1) +
+  labs(x = "Mom Weight Before Pregant (lbs)", y = "Mom BMI", title = "Mom Weight vs Mom BMI") +
+  geom_smooth(method = "lm", se = FALSE)
+
+grid.arrange(p1, p2, ncol = 2, nrow = 1)
+```
+
+```{r corrMatrix, echo=TRUE}
+# Calculate and visualize the correlation matrix
+cor_matrix <- cor(p2Data %>% select_if(is.numeric), use = "complete.obs")  # selecting numeric vars only
+
+# Visualize correlation matrix
+ggcorrplot(cor_matrix, method = "circle", type = "lower", lab = TRUE, title = "Correlation Matrix")
+```
+
+```{r correlation, echo=TRUE, fig.height=3, fig.width=5}
+cor_pears <- cor(p2Data[, -1], method = "pearson")
+
+cor_spear <- cor(p2Data[, -1], method = "spearman")
+
+highCorr <- caret::findCorrelation(abs(cor_spear), cutoff = 0.95)
+```
+
+```{r imputeData, echo=TRUE}
+p2_imputed <- mice(p2Data, m=5, method = 'pmm' ,maxit=5)
+p2_complete <- complete(p2_imputed, 1)
+```
+
+```{r saveComplete, eval=FALSE, fig.height=7, fig.width=7, include=FALSE}
+write.csv(p2_complete, "p2Imputed_complete.csv")
+```
+
+```{r loadComplete, eval=FALSE, fig.height=7, fig.width=7, include=FALSE}
+p2_complete <- read.csv("p2Imputed_complete.csv")
+```
+
+```{r correlationImputed, echo=TRUE, fig.height=3, fig.width=5}
+p1 <- ggplot(p2_complete, aes(x = MOM_LBKG, y = MOM_CM)) +
+  geom_point(alpha = 0.1) +
+  labs(x = "Mom Weight Before Pregant (lbs)", y = "Mom Height (cm)", title = "Mom Weight vs Mom Height") +
+  geom_smooth(method = "lm", se = FALSE)
+
+p2 <- ggplot(p2_complete, aes(x = MOM_LBKG, y = MOM_BMI)) +
+  geom_point(alpha = 0.1) +
+  labs(x = "Mom Weight Before Pregant (lbs)", y = "Mom BMI", title = "Mom Weight vs Mom BMI") +
+  geom_smooth(method = "lm", se = FALSE)
+
+grid.arrange(p1, p2, ncol = 2, nrow = 1)
+
+ggplot(p2_complete, aes(x = as.factor(MH_PPDPR))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "MH_PPDPR", y = "Frequency", title = "Imputed - Depress Since Birth Frequency") +
+  theme_minimal()
+```
+
+**Model:** `MH_PPDPR ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS` or `MH_PPDPR ~ PGWT_GN, MOM_CM, MOM_BMI, MOMCIG , CIG_PRIOR , MOM_LBKG, DDS_INS`.
+
+
+```{r imputedPeak, echo=TRUE}
+caret::featurePlot(x = p2_complete[, c("PGWT_GN", "MOM_CM", "MOM_BMI", "MOMCIG", "CIG_PRIOR", "MOM_LBKG", "DDS_INS")],
+            y = as.factor(p2_complete$MH_PPDPR),
+            plot = "density")
+```
+
+```{r binaryVar, echo=TRUE}
+# Filter Data
+filtered_p2Data <- p2_complete %>%
+  filter(MH_PPDPR %in% c(1,2,4,5))
+
+p2_complete$Event <- ifelse(p2_complete$MH_PPDPR %in% c(1, 2, 3), 1, 0)
+
+filtered_p2Data$Event <- ifelse(filtered_p2Data$MH_PPDPR %in% c(1, 2), 1, 0)
+
+ggplot(p2_complete, aes(x = as.factor(Event))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "MH_PPDPR (0 = Minimally Depressed, 1 = Experienced Depression", y = "Frequency", title = "Imputed - Depress Since Birth Frequency") +
+  theme_minimal()
+
+ggplot(filtered_p2Data, aes(x = as.factor(Event))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "MH_PPDPR (0 = Minimally Depressed, 1 = Experienced Depression", y = "Frequency", title = "Filtered Imputed - Depress Since Birth Frequency") +
+  theme_minimal()
+
+ggplot(trainData, aes(x = as.factor(MH_PPDPR))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "MH_PPDPR (0 = Minimally Depressed, 1 = Experienced Depression", y = "Frequency", title = "Filtered Imputed - Depress Since Birth Frequency") +
+  theme_minimal()
+```
+
+```{r spliceData, echo=TRUE}
+# Factor Variable
+p2_complete$Event <- as.factor(p2_complete$Event)
+
+trainIndex <- createDataPartition(p2_complete$Event, p = 0.8, list = FALSE)
+
+trainData <- p2_complete[trainIndex, ]
+testData <- p2_complete[-trainIndex, ]
+
+trainData$Event <- as.factor(trainData$Event)
+```
+
+Baseline Logistic Regression Model
+
+
+```{r logReg, echo=TRUE}
+logit_model <- train(Event ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS,
+                     data = trainData, method = "glm", family = binomial)
+logit_model
+```
+
+```{r logReg_filtered, echo=TRUE}
+filtered_p2Data$Event <- as.factor(filtered_p2Data$Event)
+
+logit_model_filt <- train(Event ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS,
+                     data = filtered_p2Data, method = "glm", family = binomial)
+logit_model_filt
+```
+
+```{r naiveBayes, echo=TRUE}
+naive_model <- naive_bayes(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = trainData)
+summary(naive_model)
+
+naive_model_filt <- naive_bayes(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = filtered_p2Data)
+summary(naive_model_filt)
+```
+
+```{r naiveBayes, echo=TRUE}
+naive_model <- naive_bayes(as.factor(MH_PPDPR) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = trainData)
+summary(naive_model)
+```
+
+```{r predictAc, echo=TRUE}
+# Predict
+data_trn_pred <- predict(event_lda, trainData)
+data_tst_pred <- predict(event_lda, testData)
+
+# Store Predictions
+predictions_trn <- data_trn_pred$class
+predictions_tst <- data_tst_pred$class
+
+# Calculate classification error
+calc_class_err <- function(actual, predicted) {
+  mean(actual != predicted)
+}
+
+# Check accuracy on the training set
+accuracy_trn <- mean(predictions_trn == trainData$Event)
+
+# Check accuracy on the test set
+accuracy_tst <- mean(predictions_tst == testData$Event)
+
+# Create confusion matrices
+conf_matrix_trn <- table(predictions_trn, trainData$Event)
+conf_matrix_tst <- table(predictions_tst, testData$Event)
+
+# Output results
+accuracy_trn
+accuracy_tst
+kable(conf_matrix_trn, caption = "Coefficient Matrix of Train | LDA", format = "html")
+kable(conf_matrix_tst, caption = "Coefficient Matrix of Test  | LDA", format = "html")
+```
+
+```{r lda_qda, eval=FALSE, include=FALSE}
+# lda
+MH_PPDPR_lda = lda(as.factor(MH_PPDPR) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = trainData)
+MH_PPDPR_lda
+
+event_lda = lda(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = trainData)
+event_lda
+
+# qda
+MH_PPDPR_qda = qda(as.factor(MH_PPDPR) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = trainData)
+MH_PPDPR_qda
+
+event_qda = qda(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = trainData)
+event_qda
+```
+
+```{r lda_qda, eval=TRUE,}
+# Lasso (glmnet package supports regularization methods)
+library(glmnet)
+
+x <- model.matrix(MH_PPDPR ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = trainData)[, -1]
+y <- trainData$MH_PPDPR
+
+model_lasso <- cv.glmnet(x, y, alpha = 1, family = "multinomial")  # alpha = 1 for Lasso
+print(model_lasso)
+```

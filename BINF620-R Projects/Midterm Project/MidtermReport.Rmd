@@ -16,15 +16,19 @@ library("survminer")
 library(gridExtra)
 library(caret)
 library(knitr)
+library(kableExtra)
 library(corrplot)
 library(ggcorrplot)
 library(mice)
+library(class)
 library(tidyr)
 library(VIM)
 library(naivebayes)
 library(MASS)
 set.seed(15)
 ```
+
+\newpage
 
 # Import Data
 ```{r import, echo=TRUE}
@@ -98,11 +102,17 @@ p2Data <- read.csv("PARMSOct2020.csv")
 # Part 1
 ## Introduction
 
+The goal of this project is to examine a dataset that looks at the impact of treating hyperglycemia in patients with diabetes mellitus. Our goal is to conduct survival analysis to examine the impact of Triinhibitor vs placebo on the survival of the patient.
+
 ```{r p1_dataPeak, echo=TRUE}
 summary(p1Data)
 ```
-
+\newpage
 ## Data Exploration
+
+The dataset has 1222 observations, with 15 different variables of interest. Are main focus for this analysis will be the `Group` and `Reason of End the Study`.
+
+Before we can start our analysis there are some data cleaning steps that were performed. There were no transformations of any of the variables, but changes to values of `Gender` was made to turn the values into a numerical. Also, a new variable was made that sorts the death types into a binary variable. 1 = Death and 0 = Survival. This variable will be used for our analysis.
 
 ```{r p1_cleanFilter, echo=TRUE}
 # Clean Raw
@@ -124,9 +134,9 @@ filtered_p1Data$Gender <- ifelse(filtered_p1Data$Gender == "M", 0,
 filtered_p1Data$Group <- factor(filtered_p1Data$Group, levels = c("Placebo", "Triinhibitor"))
 ```
 
-```{r p1_exploreData, echo=TRUE, fig.height=4, fig.width=5}
-summary(p1Data)
+We will start by understanding some basic associations in our data to see if we can gain some prior knowledge before jumping into a complex model. First see the distribution of `Gender` in our dataset side by side with the distribution of `Age`.
 
+```{r p1_exploreData1, echo=TRUE, fig.height=4, fig.width=7}
 genFreq <- ggplot(p1Data, aes(x = as.factor(Gender))) +
   geom_bar(fill = "skyblue") +
   labs(x = "Gender (0 = Male, 1 = Female)", y = "Frequency", title = "Gender Frequency") +
@@ -141,10 +151,14 @@ ageDis <- ggplot(p1Data, aes(y = Age)) +
         axis.ticks.x = element_blank())
 
 grid.arrange(genFreq, ageDis, ncol = 2, nrow = 1)
+```
 
+Next we will explore the distribution of our `Event` variable. See the difference between our binary variable for death vs the original forms of survival. 
+
+```{r p1_exploreData2, echo=TRUE, fig.height=4, fig.width=7}
 deathFreq <- ggplot(p1Data, aes(x = as.factor(Event))) +
   geom_bar(fill = "skyblue") +
-  labs(x = "Gender (0 = No Death, 1 = Death)", y = "Frequency", title = "Death Frequency") +
+  labs(x = "Death (0 = No Death, 1 = Death)", y = "Frequency", title = "Death Frequency") +
   theme_minimal()
 
 studyEnd <- ggplot(p1Data, aes(x = as.factor(Event_type))) +
@@ -156,9 +170,28 @@ studyEnd <- ggplot(p1Data, aes(x = as.factor(Event_type))) +
 grid.arrange(deathFreq, studyEnd, ncol = 2, nrow = 1)
 ```
 
+For the sake of this research, we will filter out all the reasons for end of study other than "Death" and "Terminated by Sponsor". We will use this Binary form of event type for our analysis purposes. This is important to remember when we make our conclusions that we can not generalize to all, but only to the types of responses we have filtered for.
+
+See our filtered data below:
+
+```{r p1_filter, eval=FALSE, include=TRUE}
+# Filter Data
+filtered_p1Data <- p1Data %>%
+  filter(Event_type %in% c("DEATH", "STUDY TERMINATED BY SPONSOR"))
+
+filtered_p1Data$Event <- ifelse(filtered_p1Data$Event_type == "DEATH", 1, 0)
+filtered_p1Data$Gender <- ifelse(filtered_p1Data$Gender == "M", 0,
+                      ifelse(filtered_p1Data$Gender == "F", 1, NA))
+```
+
+There is nothing crazy that sticks out to us when looking at the shape of some of our data points. We shall proceed with the survival analysis methods.
+
+\newpage
 ## Analysis
 
-```{r p1_models, echo=TRUE}
+To start we will utilize the Kaplan-Meier method on both our original data and our filtered data. Please see the model utilized: `Surv(Time, Event) ~ Group`. The top plot is the unfiltered data and the bottom is the filtered data.
+
+```{r p1_models1, echo=TRUE, fig.height=4, fig.width=7}
 ### Kaplan–Meier method
 km_fit <- survfit(Surv(Time, Event) ~ Group, data=p1Data)
 p1 <- autoplot(km_fit)
@@ -169,9 +202,18 @@ p2 <- autoplot(km_fit_fil)
 
 grid.arrange(p1, p2, ncol = 1, nrow = 2)
 
+# Results for Filtered Kaplan-Meier Analysis
+km_fit_fil
+```
+
+As seen form the Kaplan-Meier Method on the filtered dataset, it suggests that in the Triinhibitor group, the median survival time was 19.5 months. There is no mean survival time calculated for the placebo group. From these results it suggests there is not enough evidence that the treatment provides a higher mean survival time. We will continue with a cox regression to get more insight into this analysis.
+
+Notice that there was no significant different between the filtered data and the original data, thus we will use the filtered data moving forward.
+
+```{r p1_models2, echo=TRUE}
 ### Cox
 cox_fit <- coxph(Surv(Time, Event) ~ Group + Age + Gender + Ethnicity + White + 
-                 LVEF + A1c + SBP + DBP + BMI + Ischemic.Status + GFR, data = p1Data)
+                 LVEF + A1c + SBP + DBP + BMI + Ischemic.Status + GFR, data = filtered_p1Data)
 
 ### Hazard
 haz_ratio <- exp(coef(cox_fit))  # Hazard Ratios
@@ -181,27 +223,416 @@ haz_ratioINT <- exp(confint(cox_fit))  # 95% CI for Hazard Ratios
 ph_test <- cox.zph(cox_fit)
 ```
 
+We will look at the Cox Regression analysis and confirm our assumptions by looking at the proportional hazards.
+
 ## Results
 
 ```{r results, echo=TRUE}
 # View Results
-km_fit
-km_fit_fil
 summary(cox_fit)
 ph_test
 ```
 
+To start we will ensure that no assumptions are violated thus allowing us to use the Cox Regression analysis. When looking at the proportional hazard assumption a p-value of $0.2$ was found, thus indicating that this model is appropriate and does not violate any of the assumptions.
+
+From the Cox Regression we can see that the analysis was made on 1089 observations after the removal of 83 entries due to missing values. None of the predictors in the model suggested significant evidence with a confidence of 95%. However, two predictors suggested am impact with a confidence of 90%. These would be `Age` and `SBP`.
+
+`Age`: p-value: $0.082$\
+`SBP`: p-value: $0.086$\
+
+These predictors both suggest that with 90% confidence there is an associated between them and the survival. This is expected for age, as the age of a patient increases there survival time is expected to decreases, this can be explained by normal factors. In the case of Systolic blood pressure, there could be an association be a higher systolic blood pressure and the survival time of a patient. However, for our purposes neither of these are helpful predictors in association between the treatment and placebo.
+
+There was no evidence of any significance between the association of treatment vs placebo. There was a 21% reduction in hazard of death between the treatment and placebo with a significance of $0.196$, thus suggesting there is no enough evidence to suggest an improvement on the survival time of the patient.
+
 ### Conclusion
+
+Due to the lack of evidence in the results from both the Kaplan–Meier Method and the Cox Regression there is not enough evidence to suggest that a treatment as an improvement on the Survival Time of a patient.
+
+In conclusion, the Triinhibitor treatment does not show a significant effect on survival, and none of the other predictors reach strong significance. This evidence also suggests that no further exploration of a different model approach may be warranted to clarify these relationships.
 
 
 \newpage
 # Part 2
 ## Introduction
 
-## Data Exploration
+The goal of this section is examine some data points form the Pregnancy Risk Assessment Monitoring System, provided by the CDC. These data include about 83% of all us births and associated data points. Out goal is to perform some analysis around the `MH_PPDPR` variable, depress since birth. The goal is to determine any association between the predictors and the `MH_PPDPR` variable.
+
+The model utilized in these analysis is comprised of the following variables:
+
+**Response Variable:** `MH_PPDPR`\
+**Predictor Variables:** `PGWT_GN, MOM_CM, MOM_BMI, MOMCIG , CIG_PRIOR , MOM_LBKG`, and `DDS_INS`\
+**Model:** `MH_PPDPR ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS`\
+
+We will utilize different techniques such as Naive Bayes, lad, qda, k-nearest neighbors. All these methods will utilize the variables discussed above.
+
+```{r p2_dataPeak, echo=TRUE}
+summary(p2Data)
+```
+
+## Data Exploration | Raw Data
+
+We will start by looking as the structure of the data. The dataset is comprised of over 340,000 observations with 12 different variables. We have selected 8 variables of interest.
+
+### Data Structure
+```{r p2_exploreStruc, echo=TRUE}
+str(p2Data)
+```
+
+- MH_PPDPR: Depress since birth. This variable will be our response variable. It is a categorical variable represented as integers.
+  - .B = BLANK/DK
+  - .S = SKIP
+  - 1 = ALWAYS
+  - 2 = OFTEN/ALMOST ALWAYS
+  - 3 = SOMETIMES
+  - 4 = RARELY
+  - 5 = NEVER
+
+For our purposes we will group this variable into a binary variable.\
+
+The first, we will purpose that groups 1 and 2 can be combined into 'Depressed' and groups 4,5 can be combined into 'Not Depressed'; in this analysis we will ignore instances where 3 was reported.
+
+The second, we will purpose that groups 1, 2, and 3 combined into 'Depressed' and groups 4,5 can be combined into 'Not Depressed'.
+
+Lastly, we will purpose that groups 1 is 'Depressed' and 5 is 'Not Depressed'; in this analysis we will ignore instances where 2,3,4 are reported.
+
+```{r p2_DataPeak2, echo=TRUE, fig.height=4, fig.width=7}
+ggplot(p2Data, aes(x = as.factor(MH_PPDPR))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "MH_PPDPR", y = "Frequency", title = "Depress Since Birth Frequency") +
+  theme_minimal()
+```
+
+Notice there are over 100,000 results with missing information. We will use a method to impute this data and use the imputed data set for our analysis.
+
+**Predictors:**\
+- PGWT_GN: Pregnant Eight gain/lost. This is a numerical variable that is centered at 30.
+
+- MOM_CM: Moms height in centimeters. This is a numerical variable that is centered at 163cm.
+
+- MOM_BMI: Mom Body Mass Index. This is a numerical variable that is centered at 26.31
+
+- MOMCIG: Number of Cigarettes per day: This is a numerical variable that is centered at .9, but has a max of 98.
+
+- CIG_PRIOR: Number of Total cigarettes smoked prior to pregnant. This is a numerical variable that is centered at 1.68.
+
+- MOM_LBKG: Mom's weight. This is a numerical variable centered at 152.
+
+- DDS_INS: Insurance. This variable is categorical
+  - .A = NOT APPLICABLE.B = DK/BLANK
+  - .N = NOT RECORDED
+  - .U = UNKNOWN
+  - 1 = NO
+  - 2 = YES
+
+For our purposes we will filter this data into a binary variable being 1 for no insurance and 2 for insurance.
+
+### Explore Predictor Distributions
+```{r p2_DataPeak, echo=TRUE, fig.height=4, fig.width=7, warning=FALSE}
+
+p1 <- ggplot(p2Data, aes(x = as.factor(ALIVE))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "Alive (1 = Alive, 2 = Dead)", y = "Frequency", title = "Alive Frequency") +
+  theme_minimal()
+
+p2 <- ggplot(p2Data, aes(y = MOM_LBKG)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Mom Weight (Before Pregant)", title = "Mom Weight Before Pregant") +
+  theme_minimal()
+
+p3 <- ggplot(p2Data, aes(y = MOM_BMI)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Mom BMI", title = "Mom BMI") +
+  theme_minimal()
+
+p4 <- ggplot(p2Data, aes(y = CIG_PRIOR)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(y = "Cigarettes Smoked", title = "Cigarettes Smoked Before Pregant") +
+  theme_minimal()
+
+
+grid.arrange(p2, p3, ncol = 2, nrow = 1)
+grid.arrange(p1, p4, ncol = 2, nrow = 1)
+```
+
+### Zero Variance
+```{r p2_zeroVar, echo=TRUE}
+nzv <- nearZeroVar(p2Data, saveMetrics = TRUE)
+nzv_vars <- rownames(nzv[nzv$nzv == TRUE, ])
+```
+The variables found to have zero variance or non-variance are `MOMCIG, ALIVE, CIG_PRIOR`. Note that `ALIVE` is the variable that we are using as a predictor, this gives us some intuition to suggest we may have some success in our analysis as intuition tells use that there should be an association between depression and the death of the baby. For the other two variables, it may be helpful to explore a simplified model not including these as co-variates.
+
+### Correlation Matrix
+
+Next we will examine the correlation Matrix of our co-variates.
+
+```{r p2_corrMatrix, echo=TRUE, fig.height=5, fig.width=7}
+# Calculate and visualize the correlation matrix
+cor_matrix <- cor(p2Data %>% select_if(is.numeric), use = "complete.obs")  # selecting numeric vars only
+
+# Visualize correlation matrix
+ggcorrplot(cor_matrix, method = "circle", type = "lower", lab = TRUE, title = "Correlation Matrix")
+```
+
+Initially, we can see some strong correlations between some variables.
+
+**Strong Correlation:**\
+- `MOM_BMI ~ MOM_LBKG` This correlation makes sense as these two variables are related to each other. Thus this can be ignored.
+
+- `MOMCIG ~ CIGPRIOR` This correlation also makes sense as these two variables are related as expected. Thus this can be ignored.
+
+**Moderate Correlation:**\
+- `MOM_LBKG ~ MOM_CM` This correlation makes sens with human anatomy as weight height increases so does weight. Thus this can be ignored.
+
+One thing to note is that there is no evidence of an association with our intended response variables and any of the co-varaiates. This is okay, there is nothing to concerning that would keep us from proceeding. It is also worth noting that this is limited interdependence amount are variables, thus further contributing to allowing us to continue.
+
+### Missing-ness
+
+```{r p2_missing1`, echo=TRUE}
+total_rows <- nrow(p2Data)
+sumCC <- sum(complete.cases(p2Data))
+perct_missing <- (total_rows - sumCC) / total_rows * 100
+
+md_pattern <- md.pattern(p2Data[, -1], plot=FALSE, rotate.names = TRUE)
+```
+
+*Total Rows:* `r total_rows` \
+*Percent Missing:* `r round(perct_missing, 3)` \
+
+We have a numerous amount of missing variables. We will deal with this via imputing.
+
+The biggest variable with missing values as no impact on our analysis as we are not including this variable into our model. 
+
+- `MH_PPDPR` has about 40% missing values, we will impute information for this variable for our analysis.
+
+- `ALIVE` has about 20% missing values, we will impute information for this variable for our analysis.
+
+```{r p2_missing2`, echo=FALSE}
+# Create a summary of missing values
+missing_info <- data.frame(Variables = names(p2Data),
+                           Missing = colSums(is.na(p2Data)), 
+                           PercentMissing = colSums(is.na(p2Data)) / nrow(p2Data) * 100)
+
+# Create a bar plot of missing values
+ggplot(missing_info, aes(x = reorder(Variables, -Missing), y = PercentMissing)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Percent Missing Values in Each Variable (%)",
+       x = "Variables",
+       y = "Percent of Missing Values") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+### Imputed Data
+
+```{r loadComplete, eval=TRUE, include=FALSE}
+p2_complete <- read.csv("p2Imputed_complete.csv")
+```
+
+These data was imputed by the following code, but for speed when saving this file, the imputed file was saved a loaded below.
+
+```{r p2_imputeData, eval=FALSE, include=TRUE}
+p2_imputed <- mice(p2Data, m=5, method = 'pmm' , maxit=5)
+p2_complete <- complete(p2_imputed, 1)
+```
+
+## Data Exploration | Imputed Data
+
+### Distribution of Drepression Since Birth
+```{r p2_imputedPeak, echo=TRUE, fig.height=5, fig.width=7}
+ggplot(p2_complete, aes(x = as.factor(MH_PPDPR))) +
+  geom_bar(fill = "skyblue") +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  labs(x = "MH_PPDPR", y = "Frequency", title = "Depress Since Birth Frequency - Imputed") +
+  theme_minimal()
+```
+
+With the imputed dataset we will follow the same bucketing guidelines discussed above in the data exploration section. These principles will allows us to narrow in on an effective analysis.
+
+### Correlation Matrix
+```{r p2_corrMatrixImpute, echo=TRUE, fig.height=5, fig.width=7}
+# Calculate and visualize the correlation matrix
+cor_matrix <- cor(p2_complete %>% select_if(is.numeric), use = "complete.obs")  # selecting numeric vars only
+
+# Visualize correlation matrix
+ggcorrplot(cor_matrix, method = "circle", type = "lower", lab = TRUE, title = "Correlation Matrix for Imputed Dataset")
+```
+
+Notice that there is no significant different in the correlation matrix of our imputed dataset compared to the original. Thus we will continue with the same assumptions satisfied.
+
+### Create Binary Variable
+
+As previously stated, we are going  to turn our response variable into a binary variable and split into 3 diffent specs.
+
+```{r p2_filterData, echo=TRUE, fig.height=8, fig.width=8}
+# Scenario 1
+scen1_p2Data <- p2_complete %>%
+  filter(MH_PPDPR %in% c(1,2,4,5))
+
+scen1_p2Data$Event <- ifelse(scen1_p2Data$MH_PPDPR %in% c(1, 2), 1, 0)
+
+sP1 <- ggplot(scen1_p2Data, aes(x = as.factor(Event))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "MH_PPDPR (0 = Minimally Depressed (4,5), 1 = Experienced Depression (1,2)", y = "Frequency", title = "Scenario #1 - Depress Since Birth Frequency") +
+  theme_minimal()
+
+# Scenario 2
+scen2_p2Data <- p2_complete
+
+scen2_p2Data$Event <- ifelse(p2_complete$MH_PPDPR %in% c(1, 2, 3), 1, 0)
+
+sP2 <- ggplot(scen2_p2Data, aes(x = as.factor(Event))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "MH_PPDPR (0 = Minimally Depressed (4,5), 1 = Experienced Depression (1,2,3)", y = "Frequency", title = "Scenario #2 - Depress Since Birth Frequency") +
+  theme_minimal()
+
+# Scenario 3
+scen3_p2Data <- p2_complete %>%
+  filter(MH_PPDPR %in% c(1,5))
+
+scen3_p2Data$Event <- ifelse(scen3_p2Data$MH_PPDPR %in% 1, 1, 0)
+
+sP3 <- ggplot(scen3_p2Data, aes(x = as.factor(Event))) +
+  geom_bar(fill = "skyblue") +
+  labs(x = "MH_PPDPR (0 = Minimally Depressed (5), 1 = Experienced Depression (1) ", y = "Frequency", title = "Scenario #3 - Depress Since Birth Frequency") +
+  theme_minimal()
+
+grid.arrange(sP1, sP2, sP3, ncol = 1, nrow = 3)
+```
+
+See that we have split the 3 different scenarios and will perform the logistic regression on all three scenarios and then we will decide which scenario to peruse in further analysis. Note that in scenario 3 the number of observations that experienced depression is significantly less than the other scenarios. Scenario 2 has the most observations for experienced depression. We are suggesting the our best results will come from scenario 1 as it is appropriate that we ignore the middle category and focus on the extremes. However, it is expected the the suggests evidence will come from scenario 3, but this scenario has much more missing data than the others.
 
 ## Analysis
 
+### Train / Test Set
+```{r p2_spliceDataSec1, echo=TRUE}
+# Factor Variable
+scen1_p2Data$Event <- as.factor(scen1_p2Data$Event)
+
+trainIndex <- createDataPartition(scen1_p2Data$Event, p = 0.8, list = FALSE)
+
+spec1_trainData <- scen1_p2Data[trainIndex, ]
+spec1_testData <- scen1_p2Data[-trainIndex, ]
+
+spec1_trainData$Event <- as.factor(spec1_trainData$Event)
+```
+
+```{r p2_spliceDataSec2, echo=TRUE}
+# Factor Variable
+scen2_p2Data$Event <- as.factor(scen2_p2Data$Event)
+
+trainIndex <- createDataPartition(scen2_p2Data$Event, p = 0.8, list = FALSE)
+
+spec2_trainData <- scen2_p2Data[trainIndex, ]
+spec2_testData <- scen2_p2Data[-trainIndex, ]
+
+spec2_trainData$Event <- as.factor(spec2_trainData$Event)
+```
+
+```{r p2_spliceDataSec3, echo=TRUE}
+# Factor Variable
+scen3_p2Data$Event <- as.factor(scen3_p2Data$Event)
+
+trainIndex <- createDataPartition(scen3_p2Data$Event, p = 0.8, list = FALSE)
+
+spec3_trainData <- scen3_p2Data[trainIndex, ]
+spec3_testData <- scen3_p2Data[-trainIndex, ]
+
+spec3_trainData$Event <- as.factor(spec3_trainData$Event)
+```
+
+### Logistic Regression 
+```{r p2_logReg, echo=TRUE}
+# Spec 1
+logit_spec1 <- train(Event ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS,
+                     data = spec1_trainData, method = "glm", family = binomial)
+logit_spec1
+
+# Spec 2
+logit_spec2 <- train(Event ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS,
+                     data = spec2_trainData, method = "glm", family = binomial)
+logit_spec2
+
+# Spec 3
+logit_spec3 <- train(Event ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS,
+                     data = spec3_trainData, method = "glm", family = binomial)
+logit_spec3
+```
+
+Notice that from the logistic regression the results align with that of what we expected. Scenario 3 shows the strongest strength in accuracy followed by scenario 1 and then scenario 2. All of the sample sizes are large enough in the scenario and thus allows us to continue with further analysis.
+
+We continue with scenario 1 and 2 and ignore scenario 3 as this may be an overfit.
+
+### Naive Bayes 
+```{r p2_naiveBayes, echo=TRUE}
+# Spec 1
+spec1_naive <- naive_bayes(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOM_LBKG, data = spec1_trainData)
+summary(spec1_naive)
+
+# Spec 2
+spec2_naive <- naive_bayes(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOM_LBKG, data = spec2_trainData)
+summary(spec2_naive)
+```
+
+### lda & qda
+
+```{r lda_qda, echo=TRUE}
+# lda
+spec1_lda = lda(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = spec1_trainData)
+spec1_lda
+
+spec2_lda = lda(as.factor(MH_PPDPR) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = spec2_trainData)
+spec2_lda
+
+spec2_event_lda = lda(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = spec2_trainData)
+spec2_event_lda
+
+# qda
+spec1_qda = qda(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = spec1_trainData)
+spec1_qda
+
+spec2_qda = qda(as.factor(MH_PPDPR) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = spec2_trainData)
+spec2_qda
+
+spec2_event_qda = qda(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS, data = spec2_trainData)
+spec2_event_qda
+```
+
+The results from all three of these methods align with that of the logistic regression. The accuracy of the model to predict a non depression mother after birth for scenario 1 is about 90% and then for scenario 2 it is around 70& accurate.
+
+These results are convincing enough to continue on with doing a more intensive K-Nearest Neighbors analysis.
+
 ## Results
 
-### Conclusion
+### K Nearest Neighbors - Scenario 1
+```{r p2_knn1, echo=TRUE}
+trainData <- spec1_trainData[, !colnames(spec1_trainData) %in% "ID"]
+testData <- spec1_testData[, !colnames(spec1_testData) %in% "ID"]
+
+predictors_train <- as.matrix(trainData[, -ncol(trainData)])
+predictors_test <- as.matrix(testData[, -ncol(testData)])
+target_train <- trainData[, ncol(trainData)]
+target_test <- testData[, ncol(testData)]
+
+predicted_test <- knn(train = predictors_train, test = predictors_test, cl = target_train, k = 5)
+
+spec1_accuracy <- sum(predicted_test == target_test) / length(target_test)
+```
+
+*Scenario 1 Accuracy:* ` r round(spec1_accuracy, 3)`
+
+### K Nearest Neighbors - Scenario 2
+```{r p2_knn2, echo=TRUE}
+trainData <- spec2_trainData[, !colnames(spec2_trainData) %in% "ID"]
+testData <- spec2_testData[, !colnames(spec2_testData) %in% "ID"]
+
+predictors_train <- as.matrix(trainData[, -ncol(trainData)])
+predictors_test <- as.matrix(testData[, -ncol(testData)])
+target_train <- trainData[, ncol(trainData)]
+target_test <- testData[, ncol(testData)]
+
+predicted_test <- knn(train = predictors_train, test = predictors_test, cl = target_train, k = 5)
+
+spec2_accuracy <- sum(predicted_test == target_test) / length(target_test)
+```
+*Scenario 2 Accuracy:* ` r round(spec2_accuracy, 3)`
+
+## Conclusion

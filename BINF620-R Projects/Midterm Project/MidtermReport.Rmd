@@ -539,6 +539,18 @@ spec3_testData <- scen3_p2Data[-trainIndex, ]
 spec3_trainData$Event <- as.factor(spec3_trainData$Event)
 ```
 
+```{r p2_spliceData, echo=TRUE}
+# Factor Variable
+p2_complete$Event <- as.factor(p2_complete$Event)
+
+trainIndex <- createDataPartition(p2_complete$Event, p = 0.8, list = FALSE)
+
+p2_trainData <- p2_complete[trainIndex, ]
+p2_testData <- p2_complete[-trainIndex, ]
+
+p2_trainData$Event <- as.factor(p2_trainData$Event)
+```
+
 ### Logistic Regression 
 ```{r p2_logReg, echo=TRUE}
 # Spec 1
@@ -571,6 +583,8 @@ summary(spec1_naive)
 spec2_naive <- naive_bayes(as.factor(Event) ~ PGWT_GN + MOM_CM + MOM_BMI + MOM_LBKG, data = spec2_trainData)
 summary(spec2_naive)
 ```
+
+The results of the Naive Bayes test align with that of the logistic regression. However, there still seems to be some over fitting that is resulting in possible biases in our model. This is something we will consider moving forward in the lda and qda models.
 
 ### lda & qda
 
@@ -619,6 +633,10 @@ spec1_accuracy <- sum(predicted_test == target_test) / length(target_test)
 
 *Scenario 1 Accuracy:* ` r round(spec1_accuracy, 3)`
 
+We can see that the accuracy from scenario 1 being that groups 1 and 2 can be combined into 'Depressed' and groups 4,5 can be combined into 'Not Depressed', sightly lower than that of our other models. However, this difference is indistinguishable and thus is not something to take note of.
+
+It is worth noting that this scenario is not representative of the originally dataset. One more k-nn analysis will be ran on the original imputed dataset.
+
 ### K Nearest Neighbors - Scenario 2
 ```{r p2_knn2, echo=TRUE}
 trainData <- spec2_trainData[, !colnames(spec2_trainData) %in% "ID"]
@@ -633,6 +651,36 @@ predicted_test <- knn(train = predictors_train, test = predictors_test, cl = tar
 
 spec2_accuracy <- sum(predicted_test == target_test) / length(target_test)
 ```
+
 *Scenario 2 Accuracy:* ` r round(spec2_accuracy, 3)`
 
+We can see that the accuracy from this analysis was significantly lower than our previous and only a few points lower than the ldq and qda models ran on scenario 2. This suggest that the indicators have been prediction power when looking at the extreme cases such as 1 and 5 vs including the middle cases 2,3, and 4.
+
+We will look at one last model against the original imputed data set including all 14 variables as predictors. Note that for our previous models we selected specific variables of interest, but we are now interested to see how k-nn does with all of the variables as predictors.
+
+### K Nearest Neighbors - Complete Imputed Data
+```{r p2_knn2, echo=TRUE}
+trainData <- p2_trainData[, !colnames(p2_trainData) %in% "ID"]
+testData <- p2_testData[, !colnames(p2_testData) %in% "ID"]
+
+predictors_train <- as.matrix(trainData[, -ncol(trainData)])
+predictors_test <- as.matrix(testData[, -ncol(testData)])
+target_train <- trainData[, ncol(trainData)]
+target_test <- testData[, ncol(testData)]
+
+predicted_test <- knn(train = predictors_train, test = predictors_test, cl = target_train, k = 5)
+
+p2_accuracy <- sum(predicted_test == target_test) / length(target_test)
+```
+
+*Complete Imputed Dataset Accuracy:* ` r round(spec2_accuracy, 3)`
+
+It can be seen the the accuracy of the complete imputed dataset is no better than that of scenario 2.
+
+We can conclude that the best model for our tests was the k-nn model utilizing scenario 1. This scenario is best representative of the population data ignore instances where 3 was listed as the level for "Depress since birth".
+
 ## Conclusion
+
+Overall, we are suggesting that the provided model doesn't do a great job at predicting the depression of a mother after birth. The best model that we were able to produce was when we grouped the variable into a binary group ignore the middle data point being 3. This model showed accuracy of around 90% in being able to predict the depression of a mother after birth. For our purposes, we are suggesting that this doesn't meet our suggest power of 95% confidence. Now that being said, there is strength to suggest predictability of this model, but the strength does not surpass that of 95% confidence.
+
+In conclusion, this model has potential to suggest predictability, but with the variables that we were provided there was not enough to suggest strong evidence. Moving forward, I think that further data points such as "length of pregnancy", "weight of baby at birth", "medications", "previous mental health diagnosis", or "marital status". These further predictors could be more beneficial to the analysis providing a better picture of the mothers well-being and factors that can help predict and improve the outcomes of depression after the birth of the baby.

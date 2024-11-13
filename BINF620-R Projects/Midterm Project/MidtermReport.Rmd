@@ -631,7 +631,7 @@ predicted_test <- knn(train = predictors_train, test = predictors_test, cl = tar
 spec1_accuracy <- sum(predicted_test == target_test) / length(target_test)
 ```
 
-*Scenario 1 Accuracy:* ` r round(spec1_accuracy, 3)`
+*Scenario 1 Accuracy:* `r round(spec1_accuracy, 3)`
 
 We can see that the accuracy from scenario 1 being that groups 1 and 2 can be combined into 'Depressed' and groups 4,5 can be combined into 'Not Depressed', sightly lower than that of our other models. However, this difference is indistinguishable and thus is not something to take note of.
 
@@ -652,14 +652,14 @@ predicted_test <- knn(train = predictors_train, test = predictors_test, cl = tar
 spec2_accuracy <- sum(predicted_test == target_test) / length(target_test)
 ```
 
-*Scenario 2 Accuracy:* ` r round(spec2_accuracy, 3)`
+*Scenario 2 Accuracy:* `r round(spec2_accuracy, 3)`
 
 We can see that the accuracy from this analysis was significantly lower than our previous and only a few points lower than the ldq and qda models ran on scenario 2. This suggest that the indicators have been prediction power when looking at the extreme cases such as 1 and 5 vs including the middle cases 2,3, and 4.
 
 We will look at one last model against the original imputed data set including all 14 variables as predictors. Note that for our previous models we selected specific variables of interest, but we are now interested to see how k-nn does with all of the variables as predictors.
 
 ### K Nearest Neighbors - Complete Imputed Data
-```{r p2_knn2, echo=TRUE}
+```{r p2_knn3, echo=TRUE}
 trainData <- p2_trainData[, !colnames(p2_trainData) %in% "ID"]
 testData <- p2_testData[, !colnames(p2_testData) %in% "ID"]
 
@@ -673,7 +673,7 @@ predicted_test <- knn(train = predictors_train, test = predictors_test, cl = tar
 p2_accuracy <- sum(predicted_test == target_test) / length(target_test)
 ```
 
-*Complete Imputed Dataset Accuracy:* ` r round(spec2_accuracy, 3)`
+*Complete Imputed Dataset Accuracy:* `r round(spec2_accuracy, 3)`
 
 It can be seen the the accuracy of the complete imputed dataset is no better than that of scenario 2.
 

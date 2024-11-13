@@ -1054,6 +1054,15 @@ spec3_trainData &lt;- scen3_p2Data[trainIndex, ]
 spec3_testData &lt;- scen3_p2Data[-trainIndex, ]
 
 spec3_trainData$Event &lt;- as.factor(spec3_trainData$Event)</code></pre>
+<pre class="r"><code># Factor Variable
+p2_complete$Event &lt;- as.factor(p2_complete$Event)
+
+trainIndex &lt;- createDataPartition(p2_complete$Event, p = 0.8, list = FALSE)
+
+p2_trainData &lt;- p2_complete[trainIndex, ]
+p2_testData &lt;- p2_complete[-trainIndex, ]
+
+p2_trainData$Event &lt;- as.factor(p2_trainData$Event)</code></pre>
 </div>
 <div id="logistic-regression" class="section level3">
 <h3>Logistic Regression</h3>
@@ -1073,7 +1082,7 @@ logit_spec1</code></pre>
 ## Resampling results:
 ## 
 ##   Accuracy   Kappa      
-##   0.8983425  0.003599816</code></pre>
+##   0.8982694  0.003070393</code></pre>
 <pre class="r"><code># Spec 2
 logit_spec2 &lt;- train(Event ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS,
                      data = spec2_trainData, method = &quot;glm&quot;, family = binomial)
@@ -1090,7 +1099,7 @@ logit_spec2</code></pre>
 ## Resampling results:
 ## 
 ##   Accuracy   Kappa      
-##   0.7044892  0.005199997</code></pre>
+##   0.7046437  0.005216192</code></pre>
 <pre class="r"><code># Spec 3
 logit_spec3 &lt;- train(Event ~ PGWT_GN + MOM_CM + MOM_BMI + MOMCIG + CIG_PRIOR + MOM_LBKG + DDS_INS,
                      data = spec3_trainData, method = &quot;glm&quot;, family = binomial)
@@ -1107,7 +1116,7 @@ logit_spec3</code></pre>
 ## Resampling results:
 ## 
 ##   Accuracy   Kappa      
-##   0.9613108  0.002922923</code></pre>
+##   0.9610902  0.003384762</code></pre>
 <p>Notice that from the logistic regression the results align with that
 of what we expected. Scenario 3 shows the strongest strength in accuracy
 followed by scenario 1 and then scenario 2. All of the sample sizes are
@@ -1154,6 +1163,10 @@ summary(spec2_naive)</code></pre>
 ##     - 1: 0.2948
 ## 
 ## --------------------------------------------------------------------------------</code></pre>
+<p>The results of the Naive Bayes test align with that of the logistic
+regression. However, there still seems to be some over fitting that is
+resulting in possible biases in our model. This is something we will
+consider moving forward in the lda and qda models.</p>
 </div>
 <div id="lda-qda" class="section level3">
 <h3>lda &amp; qda</h3>
@@ -1283,240 +1296,106 @@ spec2_event_qda</code></pre>
 ##    PGWT_GN   MOM_CM  MOM_BMI    MOMCIG CIG_PRIOR MOM_LBKG  DDS_INS
 ## 0 30.70770 163.0275 26.06058 0.7360886  1.453575 151.4350 1.749566
 ## 1 31.15375 163.1203 26.65407 1.2960333  2.441770 155.3545 1.723339</code></pre>
+<p>The results from all three of these methods align with that of the
+logistic regression. The accuracy of the model to predict a non
+depression mother after birth for scenario 1 is about 90% and then for
+scenario 2 it is around 70&amp; accurate.</p>
+<p>These results are convincing enough to continue on with doing a more
+intensive K-Nearest Neighbors analysis.</p>
 </div>
 </div>
 <div id="results-1" class="section level2">
 <h2>Results</h2>
-<div id="prediction-and-accuracy" class="section level3">
-<h3>Prediction and Accuracy</h3>
-<pre class="r"><code># Predict
-data_trn_pred &lt;- predict(spec1_lda, spec1_trainData)
-data_tst_pred &lt;- predict(spec1_lda, spec1_testData)
+<div id="k-nearest-neighbors---scenario-1" class="section level3">
+<h3>K Nearest Neighbors - Scenario 1</h3>
+<pre class="r"><code>trainData &lt;- spec1_trainData[, !colnames(spec1_trainData) %in% &quot;ID&quot;]
+testData &lt;- spec1_testData[, !colnames(spec1_testData) %in% &quot;ID&quot;]
 
-# Store Predictions
-predictions_trn &lt;- data_trn_pred$class
-predictions_tst &lt;- data_tst_pred$class
+predictors_train &lt;- as.matrix(trainData[, -ncol(trainData)])
+predictors_test &lt;- as.matrix(testData[, -ncol(testData)])
+target_train &lt;- trainData[, ncol(trainData)]
+target_test &lt;- testData[, ncol(testData)]
 
-# Calculate classification error
-calc_class_err &lt;- function(actual, predicted) {
-  mean(actual != predicted)
-}
+predicted_test &lt;- knn(train = predictors_train, test = predictors_test, cl = target_train, k = 5)
 
-# Check accuracy on the training set
-accuracy_trn &lt;- mean(predictions_trn == spec1_trainData$Event)
+spec1_accuracy &lt;- sum(predicted_test == target_test) / length(target_test)</code></pre>
+<p><em>Scenario 1 Accuracy:</em> 0.892</p>
+<p>We can see that the accuracy from scenario 1 being that groups 1 and
+2 can be combined into ‘Depressed’ and groups 4,5 can be combined into
+‘Not Depressed’, sightly lower than that of our other models. However,
+this difference is indistinguishable and thus is not something to take
+note of.</p>
+<p>It is worth noting that this scenario is not representative of the
+originally dataset. One more k-nn analysis will be ran on the original
+imputed dataset.</p>
+</div>
+<div id="k-nearest-neighbors---scenario-2" class="section level3">
+<h3>K Nearest Neighbors - Scenario 2</h3>
+<pre class="r"><code>trainData &lt;- spec2_trainData[, !colnames(spec2_trainData) %in% &quot;ID&quot;]
+testData &lt;- spec2_testData[, !colnames(spec2_testData) %in% &quot;ID&quot;]
 
-# Check accuracy on the test set
-accuracy_tst &lt;- mean(predictions_tst == spec1_testData$Event)
+predictors_train &lt;- as.matrix(trainData[, -ncol(trainData)])
+predictors_test &lt;- as.matrix(testData[, -ncol(testData)])
+target_train &lt;- trainData[, ncol(trainData)]
+target_test &lt;- testData[, ncol(testData)]
 
-# Create confusion matrices
-conf_matrix_trn &lt;- table(predictions_trn, spec1_trainData$Event)
-conf_matrix_tst &lt;- table(predictions_tst, spec1_testData$Event)
+predicted_test &lt;- knn(train = predictors_train, test = predictors_test, cl = target_train, k = 5)
 
-# Output results
-accuracy_trn</code></pre>
-<pre><code>## [1] 0.8971092</code></pre>
-<pre class="r"><code>accuracy_tst</code></pre>
-<pre><code>## [1] 0.8969481</code></pre>
-<pre class="r"><code>kable(conf_matrix_trn, caption = &quot;Coefficient Matrix of Train | LDA&quot;, format = &quot;html&quot;)</code></pre>
-<table>
-<caption>
-Coefficient Matrix of Train | LDA
-</caption>
-<thead>
-<tr>
-<th style="text-align:left;">
-</th>
-<th style="text-align:right;">
-0
-</th>
-<th style="text-align:right;">
-1
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:right;">
-191442
-</td>
-<td style="text-align:right;">
-21405
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:right;">
-577
-</td>
-<td style="text-align:right;">
-220
-</td>
-</tr>
-</tbody>
-</table>
-<pre class="r"><code>kable(conf_matrix_tst, caption = &quot;Coefficient Matrix of Test  | LDA&quot;, format = &quot;html&quot;)</code></pre>
-<table>
-<caption>
-Coefficient Matrix of Test | LDA
-</caption>
-<thead>
-<tr>
-<th style="text-align:left;">
-</th>
-<th style="text-align:right;">
-0
-</th>
-<th style="text-align:right;">
-1
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:right;">
-47855
-</td>
-<td style="text-align:right;">
-5355
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:right;">
-149
-</td>
-<td style="text-align:right;">
-51
-</td>
-</tr>
-</tbody>
-</table>
-<pre class="r"><code># Predict
-data_trn_pred &lt;- predict(spec2_event_lda, spec2_trainData)
-data_tst_pred &lt;- predict(spec2_event_lda, spec2_testData)
+spec2_accuracy &lt;- sum(predicted_test == target_test) / length(target_test)</code></pre>
+<p><em>Scenario 2 Accuracy:</em> 0.652</p>
+<p>We can see that the accuracy from this analysis was significantly
+lower than our previous and only a few points lower than the ldq and qda
+models ran on scenario 2. This suggest that the indicators have been
+prediction power when looking at the extreme cases such as 1 and 5 vs
+including the middle cases 2,3, and 4.</p>
+<p>We will look at one last model against the original imputed data set
+including all 14 variables as predictors. Note that for our previous
+models we selected specific variables of interest, but we are now
+interested to see how k-nn does with all of the variables as
+predictors.</p>
+</div>
+<div id="k-nearest-neighbors---complete-imputed-data" class="section level3">
+<h3>K Nearest Neighbors - Complete Imputed Data</h3>
+<pre class="r"><code>trainData &lt;- p2_trainData[, !colnames(p2_trainData) %in% &quot;ID&quot;]
+testData &lt;- p2_testData[, !colnames(p2_testData) %in% &quot;ID&quot;]
 
-# Store Predictions
-predictions_trn &lt;- data_trn_pred$class
-predictions_tst &lt;- data_tst_pred$class
+predictors_train &lt;- as.matrix(trainData[, -ncol(trainData)])
+predictors_test &lt;- as.matrix(testData[, -ncol(testData)])
+target_train &lt;- trainData[, ncol(trainData)]
+target_test &lt;- testData[, ncol(testData)]
 
-# Calculate classification error
-calc_class_err &lt;- function(actual, predicted) {
-  mean(actual != predicted)
-}
+predicted_test &lt;- knn(train = predictors_train, test = predictors_test, cl = target_train, k = 5)
 
-# Check accuracy on the training set
-accuracy_trn &lt;- mean(predictions_trn == spec2_trainData$Event)
-
-# Check accuracy on the test set
-accuracy_tst &lt;- mean(predictions_tst == spec2_testData$Event)
-
-# Create confusion matrices
-conf_matrix_trn &lt;- table(predictions_trn, spec2_trainData$Event)
-conf_matrix_tst &lt;- table(predictions_tst, spec2_testData$Event)
-
-# Output results
-accuracy_trn</code></pre>
-<pre><code>## [1] 0.7042973</code></pre>
-<pre class="r"><code>accuracy_tst</code></pre>
-<pre><code>## [1] 0.7048039</code></pre>
-<pre class="r"><code>kable(conf_matrix_trn, caption = &quot;Coefficient Matrix of Train | LDA&quot;, format = &quot;html&quot;)</code></pre>
-<table>
-<caption>
-Coefficient Matrix of Train | LDA
-</caption>
-<thead>
-<tr>
-<th style="text-align:left;">
-</th>
-<th style="text-align:right;">
-0
-</th>
-<th style="text-align:right;">
-1
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:right;">
-190882
-</td>
-<td style="text-align:right;">
-79379
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:right;">
-1137
-</td>
-<td style="text-align:right;">
-889
-</td>
-</tr>
-</tbody>
-</table>
-<pre class="r"><code>kable(conf_matrix_tst, caption = &quot;Coefficient Matrix of Test  | LDA&quot;, format = &quot;html&quot;)</code></pre>
-<table>
-<caption>
-Coefficient Matrix of Test | LDA
-</caption>
-<thead>
-<tr>
-<th style="text-align:left;">
-</th>
-<th style="text-align:right;">
-0
-</th>
-<th style="text-align:right;">
-1
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left;">
-0
-</td>
-<td style="text-align:right;">
-47736
-</td>
-<td style="text-align:right;">
-19826
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-1
-</td>
-<td style="text-align:right;">
-268
-</td>
-<td style="text-align:right;">
-240
-</td>
-</tr>
-</tbody>
-</table>
+p2_accuracy &lt;- sum(predicted_test == target_test) / length(target_test)</code></pre>
+<p><em>Complete Imputed Dataset Accuracy:</em> 0.652</p>
+<p>It can be seen the the accuracy of the complete imputed dataset is no
+better than that of scenario 2.</p>
+<p>We can conclude that the best model for our tests was the k-nn model
+utilizing scenario 1. This scenario is best representative of the
+population data ignore instances where 3 was listed as the level for
+“Depress since birth”.</p>
 </div>
 </div>
 <div id="conclusion-1" class="section level2">
 <h2>Conclusion</h2>
+<p>Overall, we are suggesting that the provided model doesn’t do a great
+job at predicting the depression of a mother after birth. The best model
+that we were able to produce was when we grouped the variable into a
+binary group ignore the middle data point being 3. This model showed
+accuracy of around 90% in being able to predict the depression of a
+mother after birth. For our purposes, we are suggesting that this
+doesn’t meet our suggest power of 95% confidence. Now that being said,
+there is strength to suggest predictability of this model, but the
+strength does not surpass that of 95% confidence.</p>
+<p>In conclusion, this model has potential to suggest predictability,
+but with the variables that we were provided there was not enough to
+suggest strong evidence. Moving forward, I think that further data
+points such as “length of pregnancy”, “weight of baby at birth”,
+“medications”, “previous mental health diagnosis”, or “marital status”.
+These further predictors could be more beneficial to the analysis
+providing a better picture of the mothers well-being and factors that
+can help predict and improve the outcomes of depression after the birth
+of the baby.</p>
 </div>
 </div>
 

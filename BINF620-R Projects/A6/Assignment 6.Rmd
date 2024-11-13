@@ -8,6 +8,9 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
 library(survival)
 library(ranger)
 library(ggplot2)
@@ -25,7 +28,7 @@ library(tidyr)
 library(VIM)
 library(naivebayes)
 library(MASS)
-set.seed(15)
+set.seed(43)
 ```
 
 # Import Data
@@ -67,12 +70,65 @@ Please explain how we can drive (without mathematical proof), from above minimiz
 we would like to predict RestBP (resting blood pressure, in mm Hg on admission to the hospital), using regression trees and related approaches, treating the response RestBP (outcome) as a quantitative variable, and other variables are the predictors.
 
 - (a) Split the data set into a training set and a test set.
+We will utilize a 70/30 split for our data
+```{r p2_splitData, echo=TRUE}
+split_index <- createDataPartition(heartData$RestBP, p = 0.7, list = FALSE)
+train_data <- heartData[split_index, ]
+test_data <- heartData[-split_index, ]
+```
 
 - (b) Fit a regression tree to the training set. Plot the tree, and interpret the results. What test MSE do you obtain?
+```{r p2_regression, echo=TRUE}
+tree_model <- rpart(RestBP ~ Age + Sex + ChestPain + Chol + Fbs + RestECG,
+                   data = train_data,
+                   method = "anova")
+tree_model
+
+rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = TRUE)
+
+tree_pred <- predict(tree_model, test_data)
+tree_mse <- mean((test_data$RestBP - tree_pred)^2)
+cat("Test MSE for basic regression tree:", tree_mse, "\n")
+```
 
 - (c) Use cross-validation in order to determine the optimal level of tree complexity. Does pruning the tree improve the test MSE?
+```{r p2_crossVal, echo=TRUE}
+cp_values <- tree_model$cptable[, "CP"]
+cv_results <- data.frame(cp = cp_values, error = NA)
+
+for(i in seq_along(cp_values)) {
+    pruned_tree <- prune(tree_model, cp = cp_values[i])
+    cv_error <- xval(pruned_tree, k = 10)
+    cv_results$error[i] <- cv_error
+}
+
+# Find optimal cp
+optimal_cp <- cv_results$cp[which.min(cv_results$error)]
+cat("Optimal complexity parameter:", optimal_cp, "\n")
+
+# Prune tree with optimal cp
+pruned_tree <- prune(tree_model, cp = optimal_cp)
+pruned_pred <- predict(pruned_tree, test_data)
+pruned_mse <- mean((test_data$RestBP - pruned_pred)^2)
+cat("Test MSE for pruned tree:", pruned_mse, "\n")
+```
 
 - (d) Use the bagging approach (we will cover next week) in order to analyze this data. What test MSE do you obtain? Use the importance() function to determine which variables are most important.
+```{r p2_bagging, echo=TRUE}
+bag_model <- randomForest(RestBP ~ Age + Sex + ChestPain + Chol + Fbs + RestECG,
+                         data = train_data,
+                         mtry = ncol(train_data) - 1,  # use all predictors
+                         importance = TRUE)
+
+bag_pred <- predict(bag_model, test_data)
+bag_mse <- mean((test_data$RestBP - bag_pred)^2)
+cat("Test MSE for bagging:", bag_mse, "\n")
+
+# Variable importance for bagging
+importance(bag_model)
+varImpPlot(bag_model)
+```
+
 
 - (e) Use random forests to analyze this data. What test MSE do you obtain? Use the importance() function to determine which variables are most important. Describe the effect of m, the number of variables considered at each split, on the error rate obtained.
 

@@ -1,0 +1,165 @@
+---
+title: "Assignment 6"
+author: "Manning Smith"
+date: "11/12/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(survival)
+library(ranger)
+library(ggplot2)
+library(ggfortify)
+library("survminer")
+library(gridExtra)
+library(caret)
+library(knitr)
+library(kableExtra)
+library(corrplot)
+library(ggcorrplot)
+library(mice)
+library(class)
+library(tidyr)
+library(VIM)
+library(naivebayes)
+library(MASS)
+set.seed(43)
+```
+
+# Import Data
+```{r import, echo=TRUE}
+heartData <- read.csv("Heart.csv")
+#View(heartData)
+```
+
+## Data Set Information
+- PatientID:  unique patient identifier
+- Age: age in years
+- Sex:  1 = male; 0 = female
+- ChestPain: chest pain type
+- RestBP:  resting blood pressure (in mm Hg on admission to the hospital)
+- Chol: serum cholestoral in mg/dl
+- Fbs: fasting blood sugar > 120 mg/dl (1 = true; 0 = false)
+- RestECG: resting electrocardiographic results. 0: normal ; 1: having ST-T wave abnormality (T wave inversions and/or ST elevation or depression of > 0.05 mV) ;  2: showing probable or definite left ventricular hypertrophy by Estes' criteria.
+- MaxHR: maximum heart rate achieved
+- ExAng: exercise induced angina (1 = yes; 0 = no)
+- Oldpeak: ST depression induced by exercise relative to rest
+- Slope: the slope of the peak exercise ST segment. 1: upsloping; 2: flat; 3: downsloping
+- Ca: number of major vessels (0-3) colored by flourosopy
+- Thal: Thallium stress test, 3 =normal; 6 = fixed (defect); 7 = reversable (defect)
+- AHD (the predicted attribute): angiographic heart disease
+
+\newpage
+# Part 1
+In nature, with regularization, we apply what is know as a shrinkage penalty in conjunction with RSS (Residual sum of squares) minimization:
+
+$$
+\min\left(\sum^n_{i=1}\left(y_i-w_ix_i\right)^2+\:\lambda\left(1-\alpha\right)\sum^n_{i=1}w_i^2+\alpha\sum^n_{i=1}\left|w_i\right|\right)
+$$
+The penalty consists of $\lambda$ and $\alpha$, tuning parameters, along with the normalization of the coefficients and weights.
+
+Please explain how we can drive (without mathematical proof), from above minimization expression, the OLS based linear regression, Lasso regression, Ridge regression, and elastic net regression, via handling the values of $\lambda$ and $\alpha$.
+
+\newpage
+# Part 2
+we would like to predict RestBP (resting blood pressure, in mm Hg on admission to the hospital), using regression trees and related approaches, treating the response RestBP (outcome) as a quantitative variable, and other variables are the predictors.
+
+- (a) Split the data set into a training set and a test set.
+We will utilize a 70/30 split for our data
+```{r p2_splitData, echo=TRUE}
+split_index <- createDataPartition(heartData$RestBP, p = 0.7, list = FALSE)
+train_data <- heartData[split_index, ]
+test_data <- heartData[-split_index, ]
+```
+
+- (b) Fit a regression tree to the training set. Plot the tree, and interpret the results. What test MSE do you obtain?
+```{r p2_regression, echo=TRUE}
+tree_model <- rpart(RestBP ~ Age + Sex + ChestPain + Chol + Fbs + RestECG,
+                   data = train_data,
+                   method = "anova")
+tree_model
+
+rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = TRUE)
+
+tree_pred <- predict(tree_model, test_data)
+tree_mse <- mean((test_data$RestBP - tree_pred)^2)
+cat("Test MSE for basic regression tree:", tree_mse, "\n")
+```
+
+- (c) Use cross-validation in order to determine the optimal level of tree complexity. Does pruning the tree improve the test MSE?
+```{r p2_crossVal, echo=TRUE}
+cp_values <- tree_model$cptable[, "CP"]
+cv_results <- data.frame(cp = cp_values, error = NA)
+
+for(i in seq_along(cp_values)) {
+    pruned_tree <- prune(tree_model, cp = cp_values[i])
+    cv_error <- xval(pruned_tree, k = 10)
+    cv_results$error[i] <- cv_error
+}
+
+# Find optimal cp
+optimal_cp <- cv_results$cp[which.min(cv_results$error)]
+cat("Optimal complexity parameter:", optimal_cp, "\n")
+
+# Prune tree with optimal cp
+pruned_tree <- prune(tree_model, cp = optimal_cp)
+pruned_pred <- predict(pruned_tree, test_data)
+pruned_mse <- mean((test_data$RestBP - pruned_pred)^2)
+cat("Test MSE for pruned tree:", pruned_mse, "\n")
+```
+
+- (d) Use the bagging approach (we will cover next week) in order to analyze this data. What test MSE do you obtain? Use the importance() function to determine which variables are most important.
+```{r p2_bagging, echo=TRUE}
+bag_model <- randomForest(RestBP ~ Age + Sex + ChestPain + Chol + Fbs + RestECG,
+                         data = train_data,
+                         mtry = ncol(train_data) - 1,  # use all predictors
+                         importance = TRUE)
+
+bag_pred <- predict(bag_model, test_data)
+bag_mse <- mean((test_data$RestBP - bag_pred)^2)
+cat("Test MSE for bagging:", bag_mse, "\n")
+
+# Variable importance for bagging
+importance(bag_model)
+varImpPlot(bag_model)
+```
+
+
+- (e) Use random forests to analyze this data. What test MSE do you obtain? Use the importance() function to determine which variables are most important. Describe the effect of m, the number of variables considered at each split, on the error rate obtained.
+
+- (f) Report Complexity Parameter ($c_p$)s in decision tree, the best $c_p$, value which is the one that minimize the prediction error RMSE (root mean squared error), and plot the final tree model.
+
+\newpage
+# Part 3
+Using AHD (the predicted attribute): angiographic heart disease, as outcomes, and other variables are the predictors.
+
+- (a) Split the dataset into training and testing data-sets with appropriate split percentage (you did this in Assignment #2).
+
+- (b) Create a fully grown tree showing all predictor variables in the training data set, plot the tree structure, and evaluate its performance on the test data. The predict() function can be used for this purpose. Report your model accuracy rate on test data.
+
+- (c) Consider whether pruning the tree might lead to improved results. Using “train” and “ trControl” functions (with “cv”) in R package “rpart” or the function cv.tree() in the R package "tree" performs cross-validation, you can determine the optimal level of tree complexity. Fit the model on the training set with suitable parameters, plot model accuracy vs different values of (complexity parameter), and report the best the optimal level of tree complexity and the corresponding model.
+
+- (d) Identify and plot the final tree model, make predictions on the Test Data, and report model accuracy rate on test data.
+
+- (e) Using the best value for the complexity parameter ($c_p$) you obtained, compare the full fully grown tree model and your final tree model, and make your conclusion about which model would be better.
+
+- (f) Build a random forest model, generate a variable importance plot, rank the importance of variables, provide the Gini index for the predictors, and select the best model via variable selection (Please read textbook, An Introduction to Statistical Learning, Chapter 8, Tree-based Methods, especially on pp. 319-321).
+
+- (g) Comments your results from classification tree and random forest model via performance measurements. 
+
+
+
+
+```{r Q1, echo=TRUE}
+```
+
+```{r Q1a, echo=TRUE}
+```
+
+```{r Q2, echo=TRUE}
+```

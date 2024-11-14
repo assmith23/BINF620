@@ -94,7 +94,7 @@ Set $0 < \alpha < 1$ and $\lambda>0$ then leave the entire formula with both L1 
 
 \newpage
 # Part 2
-we would like to predict RestBP (resting blood pressure, in mm Hg on admission to the hospital), using regression trees and related approaches, treating the response RestBP (outcome) as a quantitative variable, and other variables are the predictors.
+We would like to predict RestBP (resting blood pressure, in mm Hg on admission to the hospital), using regression trees and related approaches, treating the response RestBP (outcome) as a quantitative variable, and other variables are the predictors.
 
 - (a) Split the data set into a training set and a test set.
 We will utilize a 70/30 split for our data
@@ -105,8 +105,12 @@ test_data <- heartData[-split_index, ]
 ```
 
 - (b) Fit a regression tree to the training set. Plot the tree, and interpret the results. What test MSE do you obtain?
-```{r p2_regression, echo=TRUE, fig.height=3, fig.width=5}
-tree_model <- rpart(RestBP ~ Age + Sex + ChestPain + Chol + Fbs + RestECG,
+
+**Model:** `RestBP ~ Age + Sex + ChestPain + AHD + Chol + Fbs + RestECG + MaxHR + ExAng + Oldpeak + Slope + Ca + Thal`
+
+```{r p2_regression, echo=TRUE}
+tree_model <- rpart(RestBP ~ Age + Sex + ChestPain + AHD + Chol + Fbs + RestECG + MaxHR + ExAng + 
+                        Oldpeak + Slope + Ca + Thal,
                    data = train_data,
                    method = "anova")
 
@@ -115,39 +119,39 @@ rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = TRUE)
 # Calc MSE
 tree_pred <- predict(tree_model, test_data)
 tree_mse <- mean((test_data$RestBP - tree_pred)^2)
-tree_model
+#tree_model
 ```
 
 This regression tree provided a large MSE doesn't suggest much strength of evidence. **MSE:** `r round(tree_mse, 3)`
 
 - (c) Use cross-validation in order to determine the optimal level of tree complexity. Does pruning the tree improve the test MSE?
 ```{r p2_crossVal, echo=TRUE}
-# Create a 10-fold cross-validation control
-cv_control <- trainControl(method = "cv", number = 10)
+cv_model <- train(RestBP ~ Age + Sex + ChestPain + AHD + Chol + Fbs + RestECG + MaxHR + ExAng + 
+                        Oldpeak + Slope + Ca + Thal, data = train_data, method = "rpart", trControl = trainControl(method = "cv", number = 13))
 
-# Perform cross-validation to find optimal complexity parameter
-cv_results <- train(RestBP ~ Age + Sex + ChestPain + Chol + Fbs + RestECG,
-                   data = train_data, 
-                   method = "rpart",
-                   trControl = cv_control,
-                   tuneLength = length(tree_model$cptable[, "CP"]))
+best_cv <- cv_model$bestTune$cp
 
-# Find optimal cp
-optimal_cp <- cv_results$bestTune$cp
+# Fit the regression tree with the best cp value
+optimal_tree <- rpart(RestBP ~ Age + Sex + ChestPain + AHD + Chol + Fbs + RestECG + MaxHR + ExAng + 
+                        Oldpeak + Slope + Ca + Thal, data = train_data, method = "anova", control = rpart.control(cp = best_cv))
 
-# Prune tree with optimal cp
-pruned_tree <- prune(tree_model, cp = optimal_cp)
-pruned_pred <- predict(pruned_tree, test_data)
-pruned_mse <- mean((test_data$RestBP - pruned_pred)^2)
+# Make predictions on the test set with the pruned tree
+predictions_pruned <- predict(optimal_tree, test_data)
+
+# Calculate the MSE for the pruned tree
+mse_pruned <- mean((predictions_pruned - test_data$RestBP)^2)
 ```
-The results from the pruning tree are much better than the previous regression tree, but still not ideal to suggest statistical evidence.\
-**Pruning Tree MSE:** `r round(pruned_mse, 3)`
+The best cv value was `r round(mse_pruned, 4)`.\
 
-The margin of error with the pruned MSE is $\pm$`r round(sqrt(pruned_mse), 3)` mmHg.
+The results from the pruning tree are much better than the previous regression tree, but still not ideal to suggest statistical evidence.\
+**Pruning Tree MSE:** `r round(mse_pruned, 3)`
+
+The margin of error with the pruned MSE is $\pm$`r round(sqrt(mse_pruned), 3)` mmHg.
 
 - (d) Use the bagging approach (we will cover next week) in order to analyze this data. What test MSE do you obtain? Use the importance() function to determine which variables are most important.
 ```{r p2_bagging, echo=TRUE}
-bag_model <- randomForest(RestBP ~ Age + Sex + ChestPain + Chol + Fbs + RestECG,
+bag_model <- randomForest(RestBP ~ Age + Sex + ChestPain + AHD + Chol + Fbs + RestECG + MaxHR + ExAng + 
+                        Oldpeak + Slope + Ca + Thal,
                          data = train_data,
                          mtry = ncol(train_data) - 1,  # use all predictors
                          importance = TRUE)
@@ -162,55 +166,89 @@ varImpPlot(bag_model)
 
 - (e) Use random forests to analyze this data. What test MSE do you obtain? Use the importance() function to determine which variables are most important. Describe the effect of m, the number of variables considered at each split, on the error rate obtained.
 ```{r p2_randomFor, echo=TRUE}
-mtry_values <- 1:(ncol(train_data) - 1)
-rf_results <- data.frame(mtry = mtry_values, mse = NA)
+# Fit a random forest model
+rf_model <- randomForest(RestBP ~ Age + Sex + ChestPain + AHD + Chol + Fbs + RestECG + MaxHR + ExAng + 
+                        Oldpeak + Slope + Ca + Thal, data = train_data, importance = TRUE)
 
-for(i in seq_along(mtry_values)) {
-    rf_model <- randomForest(RestBP ~ Age + Sex + ChestPain + RestBP + Chol + Fbs + RestECG + MaxHR + ExAng + 
-                        Oldpeak + Slope + Ca + Thal,
-                            data = train_data,
-                            mtry = mtry_values[i],
-                            importance = TRUE)
-    rf_pred <- predict(rf_model, test_data)
-    rf_results$mse[i] <- mean((test_data$RestBP - rf_pred)^2)
-}
+# Make predictions on the test set
+rf_predictions <- predict(rf_model, test_data)
 
-# Find optimal mtry
-optimal_mtry <- rf_results$mtry[which.min(rf_results$mse)]
-cat("Optimal mtry:", optimal_mtry, "\n")
+# Calculate the test MSE for random forests
+rf_mse <- mean((rf_predictions - test_data$RestBP)^2)
 
-# Final random forest model with optimal mtry
-final_rf <- randomForest(RestBP ~ Age + Sex + ChestPain + Chol + Fbs + RestECG,
-                        data = train_data,
-                        mtry = optimal_mtry,
-                        importance = TRUE)
+# Show variable importance
+rf_model$importance
 
-rf_pred <- predict(final_rf, test_data)
-rf_mse <- mean((test_data$RestBP - rf_pred)^2)
-cat("Test MSE for random forest:", rf_mse, "\n")
-
-# Variable importance for random forest
-final_rf$importance
-varImpPlot(final_rf)
+# Effect of m (number of variables at each split) on error rate
+rf_model$mtry
 ```
+
+**rf model MSE:** `r round(rf_mse, 3)`
 
 - (f) Report Complexity Parameter ($c_p$)s in decision tree, the best $c_p$, value which is the one that minimize the prediction error RMSE (root mean squared error), and plot the final tree model.
-```{r p2_randomFor, echo=TRUE}
-# (f) Plot cp values vs error
-plotcp(tree_model)
+```{r p2_cp, echo=TRUE}
+# Show the cp values for the optimal model
+optimal_tree$cptable
 
-# Get RMSE for different cp values
-rmse_values <- sqrt(cv_results$resample$RMSE)
-best_cp <- cv_results$cp[which.min(rmse_values)]
-cat("Best cp value (minimizing RMSE):", best_cp, "\n")
+# Find the best cp value that minimizes prediction error (RMSE)
+best_cp <- optimal_tree$cptable[which.min(optimal_tree$cptable[, "xerror"]), "CP"]
 
-# Final pruned tree with best cp
-final_tree <- prune(tree_model, cp = best_cp)
-rpart.plot(final_tree, box.palette = "RdBu", shadow.col = "gray", nn = TRUE)
+# Plot the final pruned tree
+final_tree <- rpart(RestBP ~ Age + Sex + ChestPain + AHD + Chol + Fbs + RestECG + MaxHR + ExAng + 
+                        Oldpeak + Slope + Ca + Thal, data = train_data, method = "anova", control = rpart.control(cp = best_cp))
+
+#rpart.plot(final_tree, type = 3, extra = 1)
+
+final_predictions <- predict(final_tree, test_data)
+final_mse <- mean((test_data$RestBP - final_predictions)^2)
 ```
 
-\newpage
-# Part 3
+**Best CP:** `r round(best_cp,4)`
+
+```{r p2_combine, echo=FALSE}
+# Initialize an empty data frame to store results
+results <- data.frame(
+  Model = character(),
+  Test_MSE = numeric(),
+  CP_Value = numeric(),
+  stringsAsFactors = FALSE
+)
+
+# Add regression tree results to the data frame
+results <- rbind(results, data.frame(
+  Model = "Regression Tree",
+  Test_MSE = tree_mse,
+  CP_Value = NA
+))
+
+# Add pruned tree results to the data frame
+results <- rbind(results, data.frame(
+  Model = "Pruned Tree",
+  Test_MSE = mse_pruned,
+  CP_Value = best_cv
+))
+
+# Add bagging results to the data frame
+results <- rbind(results, data.frame(
+  Model = "Bagging",
+  Test_MSE = bag_mse,
+  CP_Value = NA
+))
+
+# Add random forest results to the data frame
+results <- rbind(results, data.frame(
+  Model = "Final Tree",
+  Test_MSE = final_mse,
+  CP_Value = best_cp
+))
+
+# Print the final results data frame
+kable(results, caption = "Summary of Results") %>%
+  kable_styling(full_width = FALSE)
+```
+
+#Part 3
+
 Using AHD (the predicted attribute): angiographic heart disease, as outcomes, and other variables are the predictors.
 
 - (a) Split the dataset into training and testing data-sets with appropriate split percentage (you did this in Assignment #2).
@@ -222,6 +260,9 @@ test_data <- heartData[-split_index, ]
 ```
 
 - (b) Create a fully grown tree showing all predictor variables in the training data set, plot the tree structure, and evaluate its performance on the test data. The predict() function can be used for this purpose. Report your model accuracy rate on test data.
+
+**Model:** `AHD ~ Age + Sex + ChestPain + RestBP + Chol + Fbs + RestECG + MaxHR + ExAng + Oldpeak + Slope + Ca + Thal`
+
 ```{r p3_tree, echo=TRUE}
 full_tree <- rpart(AHD ~ Age + Sex + ChestPain + RestBP + Chol + Fbs + RestECG + MaxHR + ExAng + 
                         Oldpeak + Slope + Ca + Thal,
@@ -236,6 +277,7 @@ full_pred <- predict(full_tree, test_data, type = "class")
 full_conf_matrix <- confusionMatrix(full_pred, test_data$AHD)
 full_conf_matrix
 ```
+
 The Accuracy was $0.7471$ with a 95% CI of $(0.6425, 0.8342)$. Ths evidence suggest viability in the model and the Kappa of $0.495$ suggests a decent model, but there is still plenty of room for improvement.
 
 - (c) Consider whether pruning the tree might lead to improved results. Using “train” and “ trControl” functions (with “cv”) in R package “rpart” or the function cv.tree() in the R package "tree" performs cross-validation, you can determine the optimal level of tree complexity. Fit the model on the training set with suitable parameters, plot model accuracy vs different values of (complexity parameter), and report the best the optimal level of tree complexity and the corresponding model.
@@ -255,7 +297,8 @@ cv_tree <- train(AHD ~ Age + Sex + ChestPain + RestBP + Chol + Fbs + RestECG + M
 # Plot accuracy vs complexity parameter
 plot(cv_tree)
 ```
-The best accuracy was $0.733$ at a complexity of $0.1$.
+
+The best accuracy was $0.773$ at a complexity of $0.053$.
 
 - (d) Identify and plot the final tree model, make predictions on the Test Data, and report model accuracy rate on test data.
 ```{r p3_treeMod, echo=TRUE}
@@ -310,7 +353,7 @@ rf_conf_matrix <- confusionMatrix(rf_pred, test_data$AHD)
 ```
 
 - (g) Comments your results from classification tree and random forest model via performance measurements.
-```{r p3_treeMod, echo=TRUE}
+```{r p3_final, echo=TRUE}
 final_comparison <- data.frame(
   Model = c("Full Tree", "Pruned Tree", "Random Forest"),
   Accuracy = c(full_conf_matrix$overall["Accuracy"],
@@ -327,3 +370,5 @@ final_comparison <- data.frame(
 kable(final_comparison, caption = "Comparison") %>%
   kable_styling(full_width = FALSE)
 ```
+
+As seen from these results the model that best fit our desired criteria being to detect AHD while not over fitting is the random forest model. 

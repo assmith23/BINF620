@@ -1,0 +1,88 @@
+---
+title: "Assignment 7"
+author: "Manning Smith"
+date: "12/3/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(survival)
+library(ranger)
+library(ggplot2)
+library(ggfortify)
+library("survminer")
+library(gridExtra)
+library(caret)
+library(mlbench)
+library(knitr)
+library(kableExtra)
+library(corrplot)
+library(ggcorrplot)
+library(mice)
+library(class)
+library(tidyr)
+library(VIM)
+library(naivebayes)
+library(MASS)
+library(boot)
+set.seed(43)
+```
+
+**The purpose of this assignment is to work on the “PIMA INDIANS DIABETES” dataset, pima-indians-diabetes.csv, from 768 women in Pima Indians (a group of native Americans) living in Arizona  with 8 characteristics.  The dataset describes their medical records and whether or not each patient will have an onset of diabetes within certain years.**
+
+# Import Data
+```{r import, echo=TRUE}
+pima_raw <- read.csv("pima-indians-diabetes.csv")
+#View(pima_raw)
+```
+## Dictionary
+- preg = Number of times pregnant
+- plas = Plasma glucose concentration a 2 hours in an oral glucose tolerance test
+- pres = Diastolic blood pressure (mm Hg)
+- skin = Triceps skin fold thickness (mm)
+- test = 2-Hour serum insulin (mu U/ml)
+- mass = Body mass index (weight in kg/(height in m)^2)
+- pedi = Diabetes pedigree function
+- age = Age (years)
+- class = Class variable (1:tested positive for diabetes, 0: tested negative for diabetes)
+
+For each person was indicated whether diabetes was diagnosed (1 = ‘yes’) or not (0 = ‘no’); this is the outcome variable. Diabetes was diagnosed in 35% of the population and no diabetes was found in 65%.
+
+\newpage
+# Part 1 
+**We would like to predict pedi ( Diabetes pedigree function), using neural network and related methods, i.e. taking pedi ( Diabetes pedigree function) as a quantitative variable, and other variables (excluding class = Class variable 1:tested positive for diabetes, 0: tested negative for diabetes) are the input variables.**
+
+- Scale data for neural network.
+
+- Split the data set into a training set and a test set.
+
+- Fit Neural Network Models with different number of hidden neurons (vertices) in each layer.
+
+- Report RMSEs for the neural network models you fit and plot the variation of RMES vs. length of training set you specified.
+
+- Compare RMSEs from the neural network models and other models (such as linear regression model), and comment your results.
+
+\newpage
+# Part 2
+**Using class = Class variable (1:tested positive for diabetes, 0: tested negative for diabetes) as target variable (outcome), and other variables are input variables.**
+
+- Split the dataset into training and testing data-sets with appropriate split percentage.
+
+- Fit Neural Network Model with different number of hidden neurons (vertices) in each layer.
+
+- Examine whether different numbers of hidden neurons affect the accuracy of the prediction, i.e., analyze different configurations of neural network models that are constructed with different numbers of hidden neurons.
+
+- On the basis of neural network models, provide the accuracy of the actual vs. predicted categorization via confusion matrices, including accuracy and false positive rate (the ratio between the number of negative events wrongly categorized as positive (false positives) and the total number of actual negative events (regardless of classification, $FPR=\frac{FP}{FP\:+\:TN}$.
+
+- Following the methods illustrated in module 10.5, assessing the sensitivity, specificity and accuracy of the different algorithms, logistic regression, support vector machine, and neural network, by plotting receiver operating characteristic curves. Comment your results.
+
+```{r Q1, echo=TRUE}
+```
+
+```{r Q1a, echo=TRUE}
+```

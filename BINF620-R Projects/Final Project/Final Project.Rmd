@@ -1,0 +1,26 @@
+---
+title: "Final Project"
+author: "Manning Smith"
+date: "12/15/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(matrixStats)
+```
+
+# Title
+# Abstract
+# Background
+# Study Design
+# Statistical Analysis
+# Results
+# Conclusions
+# References
+
+
+
+```{r Q10, echo=TRUE}
+```

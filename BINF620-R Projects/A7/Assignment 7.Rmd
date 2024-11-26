@@ -37,7 +37,8 @@ set.seed(43)
 
 # Import Data
 ```{r import, echo=TRUE}
-pima_raw <- read.csv("pima-indians-diabetes.csv")
+data("PimaIndiansDiabetes")
+pima_raw <- PimaIndiansDiabetes
 #View(pima_raw)
 ```
 ## Dictionary
@@ -57,11 +58,52 @@ For each person was indicated whether diabetes was diagnosed (1 = ‘yes’) or 
 # Part 1 
 **We would like to predict pedi ( Diabetes pedigree function), using neural network and related methods, i.e. taking pedi ( Diabetes pedigree function) as a quantitative variable, and other variables (excluding class = Class variable 1:tested positive for diabetes, 0: tested negative for diabetes) are the input variables.**
 
+## Data Exploration
+```{r p1_explore, echo=TRUE}
+summary(pima_raw)
+```
+
+
 - Scale data for neural network.
+```{r p1_scale, echo=TRUE}
+scaled_data <- as.data.frame(scale(pima_raw[, -9]))
+scaled_data$pedigree <- pima_raw$pedigree
+```
 
 - Split the data set into a training set and a test set.
+```{r p1_splitData, echo=TRUE}
+n <- nrow(scaled_data)
+train_size <- floor(0.7 * n)
+train_indices <- sample(seq_len(n), train_size)
+
+train_data <- scaled_data[train_indices, ]
+test_data <- scaled_data[-train_indices, ]
+```
 
 - Fit Neural Network Models with different number of hidden neurons (vertices) in each layer.
+```{r p1_buildNN, echo=TRUE}
+fit_neural_network <- function(train_data, test_data, size) {
+  # Prepare scaled predictors
+  train_scaled <- as.data.frame(scale(train_data[, c("pregnant", "glucose", "pressure", 
+                                                     "triceps", "insulin", "mass", "age")]))
+  train_scaled$pedigree <- train_data$pedigree
+  
+  test_scaled <- as.data.frame(scale(test_data[, c("pregnant", "glucose", "pressure", 
+                                                   "triceps", "insulin", "mass", "age")]))
+  test_scaled$pedigree <- test_data$pedigree
+  
+  formula <- pedigree ~ pregnant + glucose + pressure + triceps + insulin + mass + age
+  
+  nn_model <- nnet(
+    formula, 
+    data = train_scaled, 
+    size = size,
+    linout = TRUE,
+    maxit = 500,
+    trace = FALSE
+  )
+}
+```
 
 - Report RMSEs for the neural network models you fit and plot the variation of RMES vs. length of training set you specified.
 

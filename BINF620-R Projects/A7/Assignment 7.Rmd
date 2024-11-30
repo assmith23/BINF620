@@ -30,7 +30,41 @@ library(VIM)
 library(naivebayes)
 library(MASS)
 library(boot)
+library(neuralnet)
+library(GGally)
 set.seed(43)
+
+calculate_metrics <- function(conf_matrix) {
+
+  if (nrow(conf_matrix) < 2 || ncol(conf_matrix) < 2) {
+    conf_matrix <- matrix(c(conf_matrix, 0, 0), nrow = 2, ncol = 2, byrow = TRUE)
+    rownames(conf_matrix) <- c("0", "1")
+    colnames(conf_matrix) <- c("0", "1")
+  }
+  
+  TP <- conf_matrix["1", "1"]
+  TN <- conf_matrix["0", "0"]
+  FP <- conf_matrix["1", "0"]
+  FN <- conf_matrix["0", "1"]
+  
+  accuracy <- (TP + TN) / sum(conf1)
+  sensitivity <- TP / (TP + FN)
+  specificity <- TN / (TN + FP)
+  FPR <- FP / (FP + TN)
+  
+  metrics <- list(
+  Accuracy = accuracy,
+  Sensitivity = sensitivity,
+  Specificity = specificity,
+  FPR = FPR)
+  
+  # Create a data frame for metrics
+  metrics_df <- data.frame(
+  Metric = c("Accuracy", "Sensitivity", "Specificity", "False Positive Rate (FPR)"),
+  Value = c(metrics$Accuracy, metrics$Sensitivity, metrics$Specificity, metrics$FPR))
+  
+  return(metrics_df)
+}
 ```
 
 **The purpose of this assignment is to work on the “PIMA INDIANS DIABETES” dataset, pima-indians-diabetes.csv, from 768 women in Pima Indians (a group of native Americans) living in Arizona  with 8 characteristics.  The dataset describes their medical records and whether or not each patient will have an onset of diabetes within certain years.**
@@ -38,7 +72,8 @@ set.seed(43)
 # Import Data
 ```{r import, echo=TRUE}
 data("PimaIndiansDiabetes")
-pima_raw <- PimaIndiansDiabetes
+#PimaIndiansDiabetes$diabetes <- factor(PimaIndiansDiabetes$diabetes)
+PimaIndiansDiabetes$diabetes <- factor(ifelse(PimaIndiansDiabetes$diabetes == "pos", 1, 0))
 #View(pima_raw)
 ```
 ## Dictionary
@@ -58,19 +93,17 @@ For each person was indicated whether diabetes was diagnosed (1 = ‘yes’) or 
 # Part 1 
 **We would like to predict pedi ( Diabetes pedigree function), using neural network and related methods, i.e. taking pedi ( Diabetes pedigree function) as a quantitative variable, and other variables (excluding class = Class variable 1:tested positive for diabetes, 0: tested negative for diabetes) are the input variables.**
 
-## Data Exploration
-```{r p1_explore, echo=TRUE}
-summary(pima_raw)
-```
-
-
 - Scale data for neural network.
 ```{r p1_scale, echo=TRUE}
-scaled_data <- as.data.frame(scale(pima_raw[, -9]))
-scaled_data$pedigree <- pima_raw$pedigree
+scaled_data <- PimaIndiansDiabetes %>%
+  dplyr::select(-diabetes) %>%
+  mutate(across(everything(), scale))
 ```
 
 - Split the data set into a training set and a test set.
+
+We will utilize a 70/30 split for this data. 70% train and 30% test.
+
 ```{r p1_splitData, echo=TRUE}
 n <- nrow(scaled_data)
 train_size <- floor(0.7 * n)
@@ -81,50 +114,232 @@ test_data <- scaled_data[-train_indices, ]
 ```
 
 - Fit Neural Network Models with different number of hidden neurons (vertices) in each layer.
+
+**Model:** `pedigree ~ pregnant + glucose + pressure + triceps + insulin + mass + age`
+
 ```{r p1_buildNN, echo=TRUE}
-fit_neural_network <- function(train_data, test_data, size) {
-  # Prepare scaled predictors
-  train_scaled <- as.data.frame(scale(train_data[, c("pregnant", "glucose", "pressure", 
-                                                     "triceps", "insulin", "mass", "age")]))
-  train_scaled$pedigree <- train_data$pedigree
-  
-  test_scaled <- as.data.frame(scale(test_data[, c("pregnant", "glucose", "pressure", 
-                                                   "triceps", "insulin", "mass", "age")]))
-  test_scaled$pedigree <- test_data$pedigree
-  
-  formula <- pedigree ~ pregnant + glucose + pressure + triceps + insulin + mass + age
-  
-  nn_model <- nnet(
-    formula, 
-    data = train_scaled, 
-    size = size,
-    linout = TRUE,
-    maxit = 500,
-    trace = FALSE
-  )
-}
+formula <- pedigree ~ pregnant + glucose + pressure + triceps + insulin + mass + age
+
+nn_model <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = TRUE,
+          likelihood = TRUE,
+          hidden = 0)
+          
+# 2-Hidden Layers, Layer-1 2-neurons, Layer-2, 1-neuron
+nn_model2 <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = TRUE,
+          likelihood = TRUE, 
+          hidden = c(2,1))
+
+# 2-Hidden Layers, Layer-1 2-neurons, Layer-2, 2-neurons
+nn_model3 <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = TRUE,
+          likelihood = TRUE, 
+          hidden = c(2,2))
+
+# 2-Hidden Layers, Layer-1 2-neurons, Layer-1, 2-neurons
+nn_model4 <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = TRUE,
+          likelihood = TRUE, 
+          hidden = c(1,2))
 ```
 
+```{r p1_buildNN, echo=TRUE, fig.height=4, fig.width=6}
+# Bar plot of results
+Class_NN_ICs <- tibble('Network' = rep(c("NN1", "NN2", "NN3", "NN4"), each = 3), 
+                       'Metric' = rep(c('AIC', 'BIC', 'ce Error * 100'), length.out = 12),
+                       'Value' = c(nn_model$result.matrix[4,1], nn_model$result.matrix[5,1], 
+                                   100*nn_model$result.matrix[1,1], nn_model3$result.matrix[4,1], 
+                                   nn_model2$result.matrix[5,1], 100*nn_model2$result.matrix[1,1],
+                                   nn_model3$result.matrix[4,1], nn_model3$result.matrix[5,1], 
+                                   100*nn_model3$result.matrix[1,1], nn_model4$result.matrix[4,1], 
+                                   nn_model4$result.matrix[5,1], 100*nn_model4$result.matrix[1,1]))
+
+Class_NN_ICs %>%
+  ggplot(aes(Network, Value, fill = Metric)) +
+  geom_col(position = 'dodge')  +
+  ggtitle("AIC, BIC, and Cross-Entropy Error of the Classification ANNs", "Note: ce Error displayed is 100 times its true value")
+```
 - Report RMSEs for the neural network models you fit and plot the variation of RMES vs. length of training set you specified.
+```{r p1_rmse, echo=TRUE}
+# Function to calculate RMSE
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+
+# Predictions on the test set for each model
+nn_pred1 <- as.numeric(predict(nn_model, test_data))
+nn_pred2 <- as.numeric(predict(nn_model2, test_data))
+nn_pred3 <- as.numeric(predict(nn_model3, test_data))
+nn_pred4 <- as.numeric(predict(nn_model4, test_data))
+
+# Calculate RMSE for each model
+rmse_nn1 <- rmse(test_data$pedigree, nn_pred1)
+rmse_nn2 <- rmse(test_data$pedigree, nn_pred2)
+rmse_nn3 <- rmse(test_data$pedigree, nn_pred3)
+rmse_nn4 <- rmse(test_data$pedigree, nn_pred4)
+
+# Create a data frame for metrics
+metrics_df <- data.frame(
+Metric = c("RMSE_nn1", "RMSE_nn2", "RMSE_nn3", "RMSE_nn4"),
+Value = c(rmse_nn1, rmse_nn2, rmse_nn3, rmse_nn4))
+
+# Store the RMSEs for each model
+rmse_values <- c(rmse_nn1, rmse_nn2, rmse_nn3, rmse_nn4)
+
+knitr::kable(metrics_df, col.names = c("Neural Network", "RMSE"), caption = "Model RMSE")
+```
+
+The nn with the lowest RMSE value is neural network 1 with no hidden layers. This nn is best suited for the desired model.
+
 
 - Compare RMSEs from the neural network models and other models (such as linear regression model), and comment your results.
+```{r p1_linreg, echo=TRUE}
+# Fit a linear regression model using the same formula as the neural network
+lm_model <- lm(formula, 
+               data = train_data)
+
+lm_pred <- predict(lm_model, train_data)
+
+rmse_lm <- rmse(train_data$pedigree, lm_pred)
+```
+
+```{r p1_rmse, echo=TRUE}
+rmse_values_with_lm <- c(rmse_nn1, rmse_nn2, rmse_nn3, rmse_nn4, rmse_lm)
+
+# Plot RMSE comparison | 
+plot(rmse_values_with_lm, type = "b", 
+     xlab = "Models", 
+     ylab = "RMSE", 
+     main = "RMSE Comparison: Neural Networks vs Linear Regression", 
+     xaxt = "n")
+axis(1, at = 1:5, labels = c("NN Model 1", "NN Model 2", "NN Model 3", "NN Model 4", "Linear Regression"))
+```
+
+When you compared to  the linear regression, the nn performs much better than that of the regression. 
 
 \newpage
 # Part 2
 **Using class = Class variable (1:tested positive for diabetes, 0: tested negative for diabetes) as target variable (outcome), and other variables are input variables.**
 
 - Split the dataset into training and testing data-sets with appropriate split percentage.
+```{r p2_splitData, echo=TRUE}
+n <- nrow(PimaIndiansDiabetes)
+train_size <- floor(0.7 * n)
+train_indices <- sample(seq_len(n), train_size)
 
+train_data <- PimaIndiansDiabetes[train_indices, ]
+test_data <- PimaIndiansDiabetes[-train_indices, ]
+```
 - Fit Neural Network Model with different number of hidden neurons (vertices) in each layer.
 
+**Model:** `diabetes ~ pregnant + glucose + pressure + triceps + insulin + mass + age + pedigree`
+
+```{r p2_buildNN, echo=TRUE}
+formula <- diabetes ~ pregnant + glucose + pressure + triceps + insulin + mass + age + pedigree
+
+nn_model <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = FALSE)
+          
+# 2-Hidden Layers, Layer-1 2-neurons, Layer-2, 1-neuron
+nn_model2 <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = FALSE,
+          hidden = c(2,1))
+
+# 2-Hidden Layers, Layer-1 2-neurons, Layer-2, 2-neurons
+nn_model3 <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = FALSE,
+          hidden = c(2,2))
+
+# 2-Hidden Layers, Layer-1 2-neurons, Layer-1, 2-neurons
+nn_model4 <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = FALSE,
+          hidden = c(1,2))
+```
+
+```{r p2_buildNN, echo=TRUE}
+formula <- diabetes ~ pregnant + glucose + pressure + triceps + insulin + mass + age + pedigree
+
+nn_model_h1 <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = FALSE,
+          rep = 3,
+          stepmax = 1e5)#,
+          #lifesign = "full")
+          
+nn_model_h5 <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = FALSE,
+          hidden = 5,
+          rep = 3,
+          stepmax = 1e5)#,
+          #lifesign = "full")
+
+nn_model_h10 <- neuralnet(formula, 
+          data = train_data, 
+          linear.output = FALSE,
+          hidden = 10,
+          rep = 3,
+          stepmax = 1e5)#,
+          #lifesign = "full")
+```
+
 - Examine whether different numbers of hidden neurons affect the accuracy of the prediction, i.e., analyze different configurations of neural network models that are constructed with different numbers of hidden neurons.
+```{r p2_acc, echo=TRUE}
+predictors <- test_data[, colnames(test_data) != "diabetes"]
+# Make predictions using each neural network
+pred1 <- compute(nn_model_h1, predictors)$net.result
+pred2 <- compute(nn_model_h5, predictors)$net.result
+pred3 <- compute(nn_model_h10, predictors)$net.result
+pred4 <- compute(nn_model4, predictors)$net.result
+```
+
+```{r p2_acc, echo=TRUE}
+predictors <- test_data[, colnames(test_data) != "diabetes"]
+# Make predictions using each neural network
+#pred1 <- compute(nn_model, predictors)$net.result
+#pred2 <- compute(nn_model2, predictors)$net.result
+#pred3 <- compute(nn_model3, predictors)$net.result
+#pred4 <- compute(nn_model4, predictors)$net.result
+
+# Convert predictions to binary classifications
+pred1_class <- as.factor(ifelse(pred1[, 2] > 0.5, 1, 0))
+pred2_class <- as.factor(ifelse(pred2[, 2] > 0.5, 1, 0))
+pred3_class <- as.factor(ifelse(pred3[, 2] > 0.5, 1, 0))
+pred4_class <- as.factor(ifelse(pred4[, 2] > 0.5, 1, 0))
+
+# Confusion matrices
+conf1 <- table(Predicted = pred1_class, Actual = test_data$diabetes)
+conf2 <- table(Predicted = pred2_class, Actual = test_data$diabetes)
+conf3 <- table(Predicted = pred3_class, Actual = test_data$diabetes)
+conf4 <- table(Predicted = pred4_class, Actual = test_data$diabetes)
+
+# Calculate metrics for each model
+metrics1_df <- calculate_metrics(conf1)
+metrics2_df <- calculate_metrics(conf2)
+metrics3_df <- calculate_metrics(conf3)
+metrics4_df <- calculate_metrics(conf4)
+```
 
 - On the basis of neural network models, provide the accuracy of the actual vs. predicted categorization via confusion matrices, including accuracy and false positive rate (the ratio between the number of negative events wrongly categorized as positive (false positives) and the total number of actual negative events (regardless of classification, $FPR=\frac{FP}{FP\:+\:TN}$.
 
-- Following the methods illustrated in module 10.5, assessing the sensitivity, specificity and accuracy of the different algorithms, logistic regression, support vector machine, and neural network, by plotting receiver operating characteristic curves. Comment your results.
-
-```{r Q1, echo=TRUE}
+```{r p2_results, echo=TRUE}
+# Print the table
+knitr::kable(metrics1_df, col.names = c("Metric", "Value"), caption = "Model Performance Metrics | NN1")
+knitr::kable(metrics2_df, col.names = c("Metric", "Value"), caption = "Model Performance Metrics | NN2")
+knitr::kable(metrics3_df, col.names = c("Metric", "Value"), caption = "Model Performance Metrics | NN3")
+knitr::kable(metrics4_df, col.names = c("Metric", "Value"), caption = "Model Performance Metrics | NN4")
 ```
 
-```{r Q1a, echo=TRUE}
+- Following the methods illustrated in module 10.5, assessing the sensitivity, specificity and accuracy of the different algorithms, logistic regression, support vector machine, and neural network, by plotting receiver operating characteristic curves. Comment your results.
+```{r p2_plots, echo=TRUE}
+
 ```

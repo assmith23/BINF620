@@ -109,4 +109,3 @@ airquality[is.na(airquality$Ozone),1]<-
                         data = airquality) 
  print(airConInfTree) 
  plot(airConInfTree)
-  

@@ -1,0 +1,78 @@
+---
+title: "Assignment 8"
+author: "Manning Smith"
+date: "12/10/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(survival)
+library(ranger)
+library(ggplot2)
+library(ggfortify)
+library("survminer")
+library(gridExtra)
+library(caret)
+library(mlbench)
+library(knitr)
+library(kableExtra)
+library(corrplot)
+library(ggcorrplot)
+library(mice)
+library(class)
+library(tidyr)
+library(VIM)
+library(naivebayes)
+library(MASS)
+library(boot)
+library(neuralnet)
+library(GGally)
+set.seed(43)
+```
+
+# Import Data
+```{r import, echo=TRUE}
+framData <- read.csv("Framingham.csv")
+View(framData)
+```
+
+## Dictionary
+- male:  male(1) or female (0) (Nominal)
+- age:   age of the patient;( continuous)
+- BPMeds:  the patient was on blood pressure medication or not (Nominal), “1”-- “Yes”, “0”-- “No”
+- prevalentStroke: the patient had previously a stroke or not (Nominal), “1”-- “Yes”, “0”-- “No”
+- prevalentHyp:  the patient was hypertensive or not (Nominal), “1”-- “Yes”, “0”-“No”
+- diabetes:  patient had diabetes or not (Nominal), “1”-- “Yes”, “0”-- “No”
+- totChol:  total cholesterol level (Continuous)
+- sysBP:  systolic blood pressure (Continuous)
+- diaBP:  diastolic blood pressure (Continuous)
+- BMI:  Body Mass Index (Continuous)
+- heartRate: heart rate (Continuous)
+- glucose: glucose level (Continuous)
+
+# Question 1
+
+```{r Q1, echo=TRUE}
+```
+
+### 1a)
+
+```{r Q1a, echo=TRUE}
+```
+
+\newpage
+# Question 2
+
+```{r Q2, echo=TRUE}
+```
+
+\newpage
+# Question 3
+
+```{r Q3, echo=TRUE}
+```

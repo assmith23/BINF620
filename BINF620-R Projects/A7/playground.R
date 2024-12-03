@@ -71,3 +71,39 @@ rmse_nn4 <- rmse(test_data$pedigree, nn_pred4)
 # Store the RMSEs for each model
 rmse_values <- c(rmse_nn1, rmse_nn2, rmse_nn3, rmse_nn4)
 ```
+
+```{r p2_buildNN, eval=FALSE, include=FALSE}
+formula <- diabetes ~ pregnant + glucose + pressure + triceps + insulin + mass + age + pedigree
+
+nn_model_h1 <- neuralnet(formula, 
+                         data = train_data, 
+                         linear.output = FALSE,
+                         rep = 3,
+                         stepmax = 1e5)#,
+#lifesign = "full")
+
+nn_model_h5 <- neuralnet(formula, 
+                         data = train_data, 
+                         linear.output = FALSE,
+                         hidden = 5,
+                         rep = 3,
+                         stepmax = 1e5)#,
+#lifesign = "full")
+
+nn_model_h10 <- neuralnet(formula, 
+                          data = train_data, 
+                          linear.output = FALSE,
+                          hidden = 10,
+                          rep = 3,
+                          stepmax = 1e5)#,
+#lifesign = "full")
+```
+
+```{r p2_acc, echo=TRUE}
+predictors <- test_data[, colnames(test_data) != "diabetes"]
+# Make predictions using each neural network
+pred1 <- compute(nn_model_h1, predictors)$net.result
+pred2 <- compute(nn_model_h5, predictors)$net.result
+pred3 <- compute(nn_model_h10, predictors)$net.result
+pred4 <- compute(nn_model4, predictors)$net.result
+```

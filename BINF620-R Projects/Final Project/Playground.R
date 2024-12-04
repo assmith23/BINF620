@@ -564,3 +564,137 @@ logistic_model <- glm(
 )
 
 summary(logistic_model)
+
+
+
+#########################################
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(survival)
+library(ranger)
+library(ggplot2)
+library(ggfortify)
+library("survminer")
+library(gridExtra)
+library(caret)
+library(mlbench)
+library(knitr)
+library(kableExtra)
+library(corrplot)
+library(ggcorrplot)
+library(mice)
+library(class)
+library(tidyr)
+library(VIM)
+library(naivebayes)
+library(MASS)
+library(boot)
+library(neuralnet)
+library(pROC)
+
+load("Final Project/filtered_NSCH.RData")
+
+currData$RACE <- factor(currData$SC_RACE_R,
+                        levels = c(1, 2, 3, 4, 5, 7),
+                        labels = c("White alone",
+                                   "Black or African American alone", 
+                                   "American Indian or Alaska Native alone", 
+                                   "Asian alone", 
+                                   "Native Hawaiian and Other Pacific Islander alone", 
+                                   "Two or More Races"))
+
+# Neural Network
+currentFilter <- c("K2Q33A", "K2Q32A", "SC_RACE_R", "sex_22", "SC_AGE_YEARS",
+                   "age3_22", "ACE2more6HH_22", "ACE1more4Com_22",
+                   "NbhdSupp_22", "NbhdSafe_22", "PLACESLIVED", "HHCOUNT", "K8Q35",
+                   "TalkAbout_22", "bully_22", "bullied_22", "INQ_INCOME",
+                   "INQ_HOME", "SC_RACE_R", "K2Q32B", "K2Q33B", "age3_22")
+currData <- filteredData[, currentFilter]
+
+#currData$SC_RACE_R <- as.factor(currData$SC_RACE_R)
+#currData$sex_22 <- as.factor(currData$sex_22)
+#currData$K8Q35 <- as.factor(currData$K8Q35)
+#currData$TalkAbout_22 <- as.factor(currData$TalkAbout_22)
+
+currData <- currData %>% filter(age3_22 == 3)
+
+currData$MHealthConcern <- ifelse(currData$K2Q33A == 1 | currData$K2Q32A == 1, 1, 0)
+
+model <- "MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R + NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME"
+
+n <- nrow(currData)
+train_size <- floor(0.8 * n)
+train_indices <- sample(seq_len(n), train_size)
+
+train_data <- currData[train_indices, ]
+test_data <- currData[-train_indices, ]
+test_data$MHealthConcern <- as.numeric(as.character(test_data$MHealthConcern))
+train_data$MHealthConcern <- as.numeric(as.character(train_data$MHealthConcern))
+
+logistic_model <- glm(
+  MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R + NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME, 
+  data = train_data, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+scaled_data <- train_data %>%
+  mutate(across(where(is.numeric) & !matches("MHealthConcern"), scale)) %>%
+  mutate(MHealthConcern = train_data$MHealthConcern)
+
+nn_model <- neuralnet(model,
+                      data = scaled_data, 
+                      linear.output = FALSE,
+                      likelihood = TRUE,
+                      hidden = c(2, 1),
+                      algorithm = "rprop+",
+                      err.fct = "ce")
+
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+
+pred1 <- as.numeric(predict(nn_model, test_data))
+rmse_nn1 <- rmse(test_data$MHealthConcern, pred1)
+
+pred1_class <- factor(ifelse(pred1 > 0.5, 1, 0), levels = c(0, 1))
+test_data$MHealthConcern <- factor(test_data$MHealthConcern, levels = c(0, 1))
+conf1 <- table(Predicted = pred1_class, Actual = test_data$MHealthConcern)
+
+calculate_metrics <- function(conf_matrix) {
+  
+  if (nrow(conf_matrix) < 2 || ncol(conf_matrix) < 2) {
+    conf_matrix <- matrix(c(conf_matrix, 0, 0), nrow = 2, ncol = 2, byrow = TRUE)
+    rownames(conf_matrix) <- c("0", "1")
+    colnames(conf_matrix) <- c("0", "1")
+  }
+  
+  TP <- conf_matrix["1", "1"]
+  TN <- conf_matrix["0", "0"]
+  FP <- conf_matrix["1", "0"]
+  FN <- conf_matrix["0", "1"]
+  
+  accuracy <- (TP + TN) / sum(conf1)
+  sensitivity <- TP / (TP + FN)
+  specificity <- TN / (TN + FP)
+  FPR <- FP / (FP + TN)
+  
+  metrics <- list(
+    Accuracy = accuracy,
+    Sensitivity = sensitivity,
+    Specificity = specificity,
+    FPR = FPR)
+  
+  # Create a data frame for metrics
+  metrics_df <- data.frame(
+    Metric = c("Accuracy", "Sensitivity", "Specificity", "False Positive Rate (FPR)"),
+    Value = c(metrics$Accuracy, metrics$Sensitivity, metrics$Specificity, metrics$FPR))
+  
+  return(metrics_df)
+}
+
+metrics1_df <- calculate_metrics(conf1)
+knitr::kable(metrics1_df, col.names = c("Metric", "Value"), caption = "Model Performance Metrics | NN1")

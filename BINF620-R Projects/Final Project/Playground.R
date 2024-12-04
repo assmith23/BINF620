@@ -415,3 +415,152 @@ partial_model <- clm(formula, data = activityData,
 lr_test <- anova(full_model, partial_model)
 
 print(lr_test)
+
+
+################################################
+
+## Load R Dataset
+load("Final Project/filtered_NSCH.RData")
+
+## Child Experiences
+# Depression, Anxiety, Race, sex, age,
+# age group (3 groups), Adverse Experiences, Household Experiences, Community Experiences
+# Safe Neighborhood, Supportive Neighborhood, Safe Neighborhood, Places Lived, People at Address, Some to turn too,
+# Share ideas, family talks, shares ideas,
+# Making Friends, bully, bullied
+currentFilter <- c("K2Q33A", "K2Q32A", "SC_RACE_R", "sex_22", "SC_AGE_YEARS",
+                   "age3_22", "ACEct11_22", "ACE2more6HH_22", "ACE1more4Com_22",
+                   "K10Q40_R", "NbhdSupp_22", "NbhdSafe_22", "PLACESLIVED", "HHCOUNT", "K8Q35",
+                   "K8Q21", "TalkAbout_22", "ShareIdeas_22", 
+                   "MakeFriend_22", "bully_22", "bullied_22")
+
+currData <- filteredData[, currentFilter]
+currData$SC_RACE_R <- as.factor(currData$SC_RACE_R)
+currData$sex_22 <- as.factor(currData$sex_22)
+currData$K8Q35 <- as.factor(currData$K8Q35)
+currData$K8Q21 <- as.factor(currData$K8Q21)
+currData$TalkAbout_22 <- as.factor(currData$TalkAbout_22)
+currData$ShareIdeas_22 <- as.factor(currData$ShareIdeas_22)
+currData$MakeFriend_22 <- as.factor(currData$MakeFriend_22)
+
+currData <- currData %>% filter(age3_22 == 3)
+#currData <- currData %>% filter(MakeFriend_22 != 90 | MakeFriend_22 != 99)
+
+currData$MHealthConcern <- factor(
+  ifelse(currData$K2Q33A == 1 | currData$K2Q32A == 1, "Yes", "No"),
+  levels = c("No", "Yes"))
+
+# Neighboorhood Impacts
+logistic_model <- glm(
+  MHealthConcern ~ NbhdSupp_22 + NbhdSafe_22 + ACE1more4Com_22, 
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+# Family Impacts
+logistic_model <- glm(
+  MHealthConcern ~ ACE2more6HH_22 + HHCOUNT + PLACESLIVED + K8Q35 + TalkAbout_22, 
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+# Places Lived
+logistic_model <- glm(
+  MHealthConcern ~ PLACESLIVED,
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+# Friend Impacts / Bully or Bullied
+logistic_model <- glm(
+  MHealthConcern ~ MakeFriend_22 + bully_22 + bullied_22, 
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+ggplot(currData, aes(x = age3_22, y = bully_22)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Bully",
+       x = "Race",
+       y = "Proportion",
+       fill = "Concern Type")
+
+
+# Create bullying status categories
+currData <- currData %>%
+  mutate(
+    BullyingStatus = case_when(
+      bully_22 >= 3 & bullied_22 >= 3 ~ "Bully and Bullied",
+      bully_22 >= 3 & bullied_22 < 3 ~ "Bully Only",
+      bully_22 < 3 & bullied_22 >= 3 ~ "Bullied Only",
+      bully_22 > 6 | bullied_22 > 6 ~ "Ignore",
+      TRUE ~ "Neither"
+    )
+  )
+
+currData <- currData %>%
+  mutate(
+    Bullyied = case_when(
+      bullied_22 >= 3 ~ 1,
+      bullied_22 < 6 ~ 0,
+      TRUE ~ 2
+    )
+  )
+
+currData <- currData %>% filter(Bullyied == 1 | Bullyied == 0)
+
+
+
+# Proportion of Bullying Status
+bullying_proportions <- currData %>%
+  group_by(BullyingStatus) %>%
+  summarise(
+    Count = n(),
+    Proportion = n() / nrow(currData)
+  )
+
+# Boxplot of Depression by Bullying Status
+ggplot(bullying_proportions, 
+       aes(x = BullyingStatus, y = Proportion)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(
+    title = "Proportions of Bullying Status",
+    x = "Bullying Status",
+    y = "Percentage"
+  ) +
+  geom_text(aes(label = sprintf("%.1f%%", Proportion)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5) +
+  theme_minimal()
+
+# ANOVA to test depression differences
+depression_anova <- aov(MHealthConcern ~ BullyingStatus, data = currData)
+
+# Print results
+print(bullying_proportions)
+print(summary(depression_anova))
+
+# Friend Impacts / Bully or Bullied
+logistic_model <- glm(
+  MHealthConcern ~ MakeFriend_22 + BullyingStatus,
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+logistic_model <- glm(
+  Bullyied ~ MakeFriend_22 + MHealthConcern, 
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)

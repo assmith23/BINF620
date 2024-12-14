@@ -593,6 +593,10 @@ library(MASS)
 library(boot)
 library(neuralnet)
 library(pROC)
+library(MatchIt)
+library(tableone)
+library(WeightIt)
+library(survey)
 
 load("Final Project/filtered_NSCH.RData")
 
@@ -698,3 +702,110 @@ calculate_metrics <- function(conf_matrix) {
 
 metrics1_df <- calculate_metrics(conf1)
 knitr::kable(metrics1_df, col.names = c("Metric", "Value"), caption = "Model Performance Metrics | NN1")
+
+
+
+############################
+currentFilter <- c("K2Q33A", "K2Q32A", "SC_RACE_R", "sex_22", "SC_AGE_YEARS",
+                   "age3_22", "ACE2more6HH_22", "ACE1more4Com_22",
+                   "NbhdSupp_22", "NbhdSafe_22", "PLACESLIVED", "HHCOUNT", "K8Q35",
+                   "TalkAbout_22", "bully_22", "bullied_22", "INQ_INCOME",
+                   "INQ_HOME", "SC_RACE_R", "K2Q32B", "K2Q33B", "age3_22")
+currData <- filteredData[, currentFilter]
+
+covariates <- c("MHealthConcern", "HHCOUNT", "K8Q35", "TalkAbout_22", "SC_RACE_R", "NbhdSupp_22",
+              "NbhdSafe_22", "ACE2more6HH_22", "INQ_INCOME")
+
+currData <- currData %>% filter(age3_22 == 3)
+
+currData$MHealthConcern <- ifelse(currData$K2Q33A == 1 | currData$K2Q32A == 1, 1, 0)
+
+table_one <- CreateTableOne(
+  vars = covariates, 
+  strata = "MHealthConcern", 
+  data = currData, 
+  test = TRUE
+)
+
+table_one
+
+# MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R + NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME
+
+ps_model <- glm(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
+                  NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
+                family = binomial(),
+                data = currData
+)
+
+currData$propensity_score <- predict(ps_model, type = "response")
+
+match_results <- matchit(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
+                           NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
+                         method = "nearest",
+                         data = currData
+)
+
+matched_data <- match.data(match_results)
+
+matched_table_one <- CreateTableOne(
+  vars = covariates, 
+  strata = "MHealthConcern", 
+  data = matched_data, 
+  test = TRUE
+)
+
+matched_table_one
+
+weight_results <- weightit(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
+                             NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
+                           data = currData,
+                           method = "ps"
+)
+
+currData$weights <- weight_results$weights
+
+survey_design <- svydesign(
+  ids = ~1,  # No cluster identifier
+  weights = ~weights,
+  data = currData)
+
+# Create weighted table one
+weighted_table_one <- svyCreateTableOne(
+  vars = covariates, 
+  strata = "MHealthConcern", 
+  data = survey_design,
+  test = TRUE)
+
+weighted_table_one
+
+currData <- currData %>%
+  mutate(
+    Bullyied = case_when(
+      bullied_22 >= 3 ~ 1,
+      bullied_22 < 6 ~ 0,
+      TRUE ~ 2
+    )
+  )
+
+currData <- currData %>% filter(Bullyied == 1 | Bullyied == 0)
+
+og_model <- glm(Bullyied ~ MHealthConcern, 
+                data = currData, 
+                family = binomial())
+
+matched_model <- glm(Bullyied ~ MHealthConcern, 
+                     data = currData, 
+                     family = binomial())
+
+weighted_model <- glm(Bullyied ~ MHealthConcern, 
+                      data = currData,
+                      weights = weights,
+                      family = binomial())
+
+# Summarize results
+results <- list(
+  Original = summary(og_model),
+  Matched = summary(matched_model),
+  Weighted = summary(weighted_model))
+
+results

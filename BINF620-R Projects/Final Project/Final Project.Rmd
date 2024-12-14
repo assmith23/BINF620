@@ -12,15 +12,35 @@ library(matrixStats)
 ```
 
 # Title
+
 # Abstract
+
 # Background
+Explanation of area of focus being mental health with the focus on groups 2/3
+## Data Exploration
+Talk about age then the scoring then the proportions of the score.
+### Mental Health Score
+### Race Exploration
+
 # Study Design
+## Aims
+## Population Selection
+## Data and Materials
+## Split and Train Data
+## Logistic Regression to Show Viability
+
 # Statistical Analysis
+## Neural Network 1
+Neural network #1 with binary response of current mental health
+## Neural Network 2
+Neural network #2 with continuous response of score from past and current
+
 # Results
+## Model Used
+## Model Evaluation Metrics
+## Major Findings
+## Tables and Figures
+
 # Conclusions
+
 # References
-
-
-
-```{r Q10, echo=TRUE}
-```

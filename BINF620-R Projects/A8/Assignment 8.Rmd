@@ -77,7 +77,7 @@ We utilized three different propensity score(PS) techniques. The first being PS 
 
 # Analysis
 
-To access if it is approiate to proceed with these PS tests, we will provide a basis for proceeding.
+To access if it is appropriate to proceed with these PS tests, we will provide a basis for proceeding.
 
 ```{r table, echo=TRUE}
 table_one <- CreateTableOne(
@@ -190,3 +190,15 @@ results <- list(
   
 results
 ```
+The results from the our utilized methods are seen below.
+
+**Analysis of the regression results:**
+P-value: $0.277$
+
+**Matched Data Model:**
+P-value: $0.0928$
+
+**Weighted Data Model:**
+P-value: 2.62e-09$
+
+The inverse probability weighting revealed a significant smoking-CHD risk relationship while the matching slightly improved the coefficient's significance. When you took into account the weighting it provided the most precise estimate, suggesting an association in the data.

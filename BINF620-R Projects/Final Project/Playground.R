@@ -415,3 +415,397 @@ partial_model <- clm(formula, data = activityData,
 lr_test <- anova(full_model, partial_model)
 
 print(lr_test)
+
+
+################################################
+
+## Load R Dataset
+load("Final Project/filtered_NSCH.RData")
+
+## Child Experiences
+# Depression, Anxiety, Race, sex, age,
+# age group (3 groups), Adverse Experiences, Household Experiences, Community Experiences
+# Safe Neighborhood, Supportive Neighborhood, Safe Neighborhood, Places Lived, People at Address, Some to turn too,
+# Share ideas, family talks, shares ideas,
+# Making Friends, bully, bullied
+currentFilter <- c("K2Q33A", "K2Q32A", "SC_RACE_R", "sex_22", "SC_AGE_YEARS",
+                   "age3_22", "ACEct11_22", "ACE2more6HH_22", "ACE1more4Com_22",
+                   "K10Q40_R", "NbhdSupp_22", "NbhdSafe_22", "PLACESLIVED", "HHCOUNT", "K8Q35",
+                   "K8Q21", "TalkAbout_22", "ShareIdeas_22", 
+                   "MakeFriend_22", "bully_22", "bullied_22")
+
+currData <- filteredData[, currentFilter]
+currData$SC_RACE_R <- as.factor(currData$SC_RACE_R)
+currData$sex_22 <- as.factor(currData$sex_22)
+currData$K8Q35 <- as.factor(currData$K8Q35)
+currData$K8Q21 <- as.factor(currData$K8Q21)
+currData$TalkAbout_22 <- as.factor(currData$TalkAbout_22)
+currData$ShareIdeas_22 <- as.factor(currData$ShareIdeas_22)
+currData$MakeFriend_22 <- as.factor(currData$MakeFriend_22)
+
+currData <- currData %>% filter(age3_22 == 3)
+#currData <- currData %>% filter(MakeFriend_22 != 90 | MakeFriend_22 != 99)
+
+currData$MHealthConcern <- factor(
+  ifelse(currData$K2Q33A == 1 | currData$K2Q32A == 1, "Yes", "No"),
+  levels = c("No", "Yes"))
+
+# Neighboorhood Impacts
+logistic_model <- glm(
+  MHealthConcern ~ NbhdSupp_22 + NbhdSafe_22 + ACE1more4Com_22, 
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+# Family Impacts
+logistic_model <- glm(
+  MHealthConcern ~ ACE2more6HH_22 + HHCOUNT + PLACESLIVED + K8Q35 + TalkAbout_22, 
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+# Places Lived
+logistic_model <- glm(
+  MHealthConcern ~ PLACESLIVED,
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+# Friend Impacts / Bully or Bullied
+logistic_model <- glm(
+  MHealthConcern ~ MakeFriend_22 + bully_22 + bullied_22, 
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+ggplot(currData, aes(x = age3_22, y = bully_22)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Bully",
+       x = "Race",
+       y = "Proportion",
+       fill = "Concern Type")
+
+
+# Create bullying status categories
+currData <- currData %>%
+  mutate(
+    BullyingStatus = case_when(
+      bully_22 >= 3 & bullied_22 >= 3 ~ "Bully and Bullied",
+      bully_22 >= 3 & bullied_22 < 3 ~ "Bully Only",
+      bully_22 < 3 & bullied_22 >= 3 ~ "Bullied Only",
+      bully_22 > 6 | bullied_22 > 6 ~ "Ignore",
+      TRUE ~ "Neither"
+    )
+  )
+
+currData <- currData %>%
+  mutate(
+    Bullyied = case_when(
+      bullied_22 >= 3 ~ 1,
+      bullied_22 < 6 ~ 0,
+      TRUE ~ 2
+    )
+  )
+
+currData <- currData %>% filter(Bullyied == 1 | Bullyied == 0)
+
+
+
+# Proportion of Bullying Status
+bullying_proportions <- currData %>%
+  group_by(BullyingStatus) %>%
+  summarise(
+    Count = n(),
+    Proportion = n() / nrow(currData)
+  )
+
+# Boxplot of Depression by Bullying Status
+ggplot(bullying_proportions, 
+       aes(x = BullyingStatus, y = Proportion)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(
+    title = "Proportions of Bullying Status",
+    x = "Bullying Status",
+    y = "Percentage"
+  ) +
+  geom_text(aes(label = sprintf("%.1f%%", Proportion)), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5) +
+  theme_minimal()
+
+# ANOVA to test depression differences
+depression_anova <- aov(MHealthConcern ~ BullyingStatus, data = currData)
+
+# Print results
+print(bullying_proportions)
+print(summary(depression_anova))
+
+# Friend Impacts / Bully or Bullied
+logistic_model <- glm(
+  MHealthConcern ~ MakeFriend_22 + BullyingStatus,
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+logistic_model <- glm(
+  Bullyied ~ MakeFriend_22 + MHealthConcern, 
+  data = currData, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+
+
+#########################################
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+library(survival)
+library(ranger)
+library(ggplot2)
+library(ggfortify)
+library("survminer")
+library(gridExtra)
+library(caret)
+library(mlbench)
+library(knitr)
+library(kableExtra)
+library(corrplot)
+library(ggcorrplot)
+library(mice)
+library(class)
+library(tidyr)
+library(VIM)
+library(naivebayes)
+library(MASS)
+library(boot)
+library(neuralnet)
+library(pROC)
+library(MatchIt)
+library(tableone)
+library(WeightIt)
+library(survey)
+
+load("Final Project/filtered_NSCH.RData")
+
+currData$RACE <- factor(currData$SC_RACE_R,
+                        levels = c(1, 2, 3, 4, 5, 7),
+                        labels = c("White alone",
+                                   "Black or African American alone", 
+                                   "American Indian or Alaska Native alone", 
+                                   "Asian alone", 
+                                   "Native Hawaiian and Other Pacific Islander alone", 
+                                   "Two or More Races"))
+
+# Neural Network
+currentFilter <- c("K2Q33A", "K2Q32A", "SC_RACE_R", "sex_22", "SC_AGE_YEARS",
+                   "age3_22", "ACE2more6HH_22", "ACE1more4Com_22",
+                   "NbhdSupp_22", "NbhdSafe_22", "PLACESLIVED", "HHCOUNT", "K8Q35",
+                   "TalkAbout_22", "bully_22", "bullied_22", "INQ_INCOME",
+                   "INQ_HOME", "SC_RACE_R", "K2Q32B", "K2Q33B", "age3_22")
+currData <- filteredData[, currentFilter]
+
+#currData$SC_RACE_R <- as.factor(currData$SC_RACE_R)
+#currData$sex_22 <- as.factor(currData$sex_22)
+#currData$K8Q35 <- as.factor(currData$K8Q35)
+#currData$TalkAbout_22 <- as.factor(currData$TalkAbout_22)
+
+currData <- currData %>% filter(age3_22 == 3)
+
+currData$MHealthConcern <- ifelse(currData$K2Q33A == 1 | currData$K2Q32A == 1, 1, 0)
+
+model <- "MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R + NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME"
+
+n <- nrow(currData)
+train_size <- floor(0.8 * n)
+train_indices <- sample(seq_len(n), train_size)
+
+train_data <- currData[train_indices, ]
+test_data <- currData[-train_indices, ]
+test_data$MHealthConcern <- as.numeric(as.character(test_data$MHealthConcern))
+train_data$MHealthConcern <- as.numeric(as.character(train_data$MHealthConcern))
+
+logistic_model <- glm(
+  MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R + NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME, 
+  data = train_data, 
+  family = binomial()
+)
+
+summary(logistic_model)
+
+scaled_data <- train_data %>%
+  mutate(across(where(is.numeric) & !matches("MHealthConcern"), scale)) %>%
+  mutate(MHealthConcern = train_data$MHealthConcern)
+
+nn_model <- neuralnet(model,
+                      data = scaled_data, 
+                      linear.output = FALSE,
+                      likelihood = TRUE,
+                      hidden = c(2, 1),
+                      algorithm = "rprop+",
+                      err.fct = "ce")
+
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+
+pred1 <- as.numeric(predict(nn_model, test_data))
+rmse_nn1 <- rmse(test_data$MHealthConcern, pred1)
+
+pred1_class <- factor(ifelse(pred1 > 0.5, 1, 0), levels = c(0, 1))
+test_data$MHealthConcern <- factor(test_data$MHealthConcern, levels = c(0, 1))
+conf1 <- table(Predicted = pred1_class, Actual = test_data$MHealthConcern)
+
+calculate_metrics <- function(conf_matrix) {
+  
+  if (nrow(conf_matrix) < 2 || ncol(conf_matrix) < 2) {
+    conf_matrix <- matrix(c(conf_matrix, 0, 0), nrow = 2, ncol = 2, byrow = TRUE)
+    rownames(conf_matrix) <- c("0", "1")
+    colnames(conf_matrix) <- c("0", "1")
+  }
+  
+  TP <- conf_matrix["1", "1"]
+  TN <- conf_matrix["0", "0"]
+  FP <- conf_matrix["1", "0"]
+  FN <- conf_matrix["0", "1"]
+  
+  accuracy <- (TP + TN) / sum(conf1)
+  sensitivity <- TP / (TP + FN)
+  specificity <- TN / (TN + FP)
+  FPR <- FP / (FP + TN)
+  
+  metrics <- list(
+    Accuracy = accuracy,
+    Sensitivity = sensitivity,
+    Specificity = specificity,
+    FPR = FPR)
+  
+  # Create a data frame for metrics
+  metrics_df <- data.frame(
+    Metric = c("Accuracy", "Sensitivity", "Specificity", "False Positive Rate (FPR)"),
+    Value = c(metrics$Accuracy, metrics$Sensitivity, metrics$Specificity, metrics$FPR))
+  
+  return(metrics_df)
+}
+
+metrics1_df <- calculate_metrics(conf1)
+knitr::kable(metrics1_df, col.names = c("Metric", "Value"), caption = "Model Performance Metrics | NN1")
+
+
+
+############################
+currentFilter <- c("K2Q33A", "K2Q32A", "SC_RACE_R", "sex_22", "SC_AGE_YEARS",
+                   "age3_22", "ACE2more6HH_22", "ACE1more4Com_22",
+                   "NbhdSupp_22", "NbhdSafe_22", "PLACESLIVED", "HHCOUNT", "K8Q35",
+                   "TalkAbout_22", "bully_22", "bullied_22", "INQ_INCOME",
+                   "INQ_HOME", "SC_RACE_R", "K2Q32B", "K2Q33B", "age3_22")
+currData <- filteredData[, currentFilter]
+
+covariates <- c("MHealthConcern", "HHCOUNT", "K8Q35", "TalkAbout_22", "SC_RACE_R", "NbhdSupp_22",
+              "NbhdSafe_22", "ACE2more6HH_22", "INQ_INCOME")
+
+currData <- currData %>% filter(age3_22 == 3)
+
+currData$MHealthConcern <- ifelse(currData$K2Q33A == 1 | currData$K2Q32A == 1, 1, 0)
+
+table_one <- CreateTableOne(
+  vars = covariates, 
+  strata = "MHealthConcern", 
+  data = currData, 
+  test = TRUE
+)
+
+table_one
+
+# MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R + NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME
+
+ps_model <- glm(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
+                  NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
+                family = binomial(),
+                data = currData
+)
+
+currData$propensity_score <- predict(ps_model, type = "response")
+
+match_results <- matchit(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
+                           NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
+                         method = "nearest",
+                         data = currData
+)
+
+matched_data <- match.data(match_results)
+
+matched_table_one <- CreateTableOne(
+  vars = covariates, 
+  strata = "MHealthConcern", 
+  data = matched_data, 
+  test = TRUE
+)
+
+matched_table_one
+
+weight_results <- weightit(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
+                             NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
+                           data = currData,
+                           method = "ps"
+)
+
+currData$weights <- weight_results$weights
+
+survey_design <- svydesign(
+  ids = ~1,  # No cluster identifier
+  weights = ~weights,
+  data = currData)
+
+# Create weighted table one
+weighted_table_one <- svyCreateTableOne(
+  vars = covariates, 
+  strata = "MHealthConcern", 
+  data = survey_design,
+  test = TRUE)
+
+weighted_table_one
+
+currData <- currData %>%
+  mutate(
+    Bullyied = case_when(
+      bullied_22 >= 3 ~ 1,
+      bullied_22 < 6 ~ 0,
+      TRUE ~ 2
+    )
+  )
+
+currData <- currData %>% filter(Bullyied == 1 | Bullyied == 0)
+
+og_model <- glm(Bullyied ~ MHealthConcern, 
+                data = currData, 
+                family = binomial())
+
+matched_model <- glm(Bullyied ~ MHealthConcern, 
+                     data = currData, 
+                     family = binomial())
+
+weighted_model <- glm(Bullyied ~ MHealthConcern, 
+                      data = currData,
+                      weights = weights,
+                      family = binomial())
+
+# Summarize results
+results <- list(
+  Original = summary(og_model),
+  Matched = summary(matched_model),
+  Weighted = summary(weighted_model))
+
+results

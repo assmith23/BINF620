@@ -32,13 +32,18 @@ library(MASS)
 library(boot)
 library(neuralnet)
 library(GGally)
+library(MatchIt)
+library(tableone)
+library(WeightIt)
+library(survey)
 set.seed(43)
 ```
 
 # Import Data
 ```{r import, echo=TRUE}
 framData <- read.csv("Framingham.csv")
-View(framData)
+framData <- na.omit(framData)
+#View(framData)
 ```
 
 ## Dictionary
@@ -54,25 +59,146 @@ View(framData)
 - BMI:  Body Mass Index (Continuous)
 - heartRate: heart rate (Continuous)
 - glucose: glucose level (Continuous)
+- TenYearCHD:  10 year risk of coronary heart disease CHD (“1”, means “Yes”, “0” means “No”)
+- currentSmoker:  the patient is a current smoker or not (Nominal),  “1”-- “Yes”, “0”-- “No”
 
-# Question 1
+# Methods Description
 
-```{r Q1, echo=TRUE}
+The objective of this research is to explore the association between smoking status and the 10-year risk of future coronary heart disease (CHD). The dataset utilized was based on data collected from Framingham, Massachusetts. This dataset had 4238 observations across 15 different variables. After omitting the NAs we performed our analysis on 3679 observations.
+
+Our variables of interest were `currentSmoker` and `TenYeaRCHD`, both of which are binary categorical variables. Upon exploration we defined are covariates as:
+```{r covariates, echo=TRUE}
+covariates <- c("male", "age", "BPMeds", "prevalentStroke", 
+                  "prevalentHyp", "diabetes", "totChol", 
+                  "sysBP", "diaBP", "BMI", "heartRate", "glucose")
 ```
 
-### 1a)
+We utilized three different propensity score(PS) techniques. The first being PS using logistic regression. Then one-to-one match, last we utilized inverse probability weighting.
 
-```{r Q1a, echo=TRUE}
+# Analysis
+
+To access if it is appropriate to proceed with these PS tests, we will provide a basis for proceeding.
+
+```{r table, echo=TRUE}
+table_one <- CreateTableOne(
+    vars = covariates, 
+    strata = "currentSmoker", 
+    data = framData, 
+    test = TRUE
+)
+
+table_one
 ```
 
-\newpage
-# Question 2
+We can see that there are some significant differences in the baselines from non-smokers vs smokers. There seems to be a propensity for smokers to be more male and younger. Based on these baseline results we will proceed with our propensity score methods.
 
-```{r Q2, echo=TRUE}
+First, we will utilize a logistic model based on the model provided below.
+
+**Model:** `currentSmoker ~ male + age + BPMeds + prevalentStroke + prevalentHyp + diabetes + totChol + sysBP + diaBP + BMI + heartRate + glucose`
+
+```{r propensity, echo=TRUE}
+ps_model <- glm(currentSmoker ~ male + age + BPMeds + prevalentStroke + 
+                   prevalentHyp + diabetes + totChol + 
+                   sysBP + diaBP + BMI + heartRate + glucose,
+    family = binomial(),
+    data = framData
+)
+  
+framData$propensity_score <- predict(ps_model, type = "response")
 ```
 
-\newpage
-# Question 3
-
-```{r Q3, echo=TRUE}
+Next, we will utilize the one-to-one matching method, based on the same model provided above.
+```{r matching, echo=TRUE}
+match_results <- matchit(currentSmoker ~ male + age + BPMeds + prevalentStroke + 
+                    prevalentHyp + diabetes + totChol + 
+                    sysBP + diaBP + BMI + heartRate + glucose,
+    method = "nearest",
+    data = framData
+)
+  
+matched_data <- match.data(match_results)
 ```
+
+Provide below is the table based on the results from the one-to-one matching method.
+
+```{r matchBal, echo=TRUE}
+matched_table_one <- CreateTableOne(
+    vars = covariates, 
+    strata = "currentSmoker", 
+    data = matched_data, 
+    test = TRUE
+)
+  
+matched_table_one
+```
+We can see that these results seem to provide some further support of success, but these results are no much different or significantly better than that of our previous method.
+
+Lastly, we will utilize the inverse probability weighting method, once again based on the the same provided model.
+
+```{r inverse, echo=TRUE}
+weight_results <- weightit(currentSmoker ~ male + age + BPMeds + prevalentStroke + 
+                    prevalentHyp + diabetes + totChol + 
+                    sysBP + diaBP + BMI + heartRate + glucose,
+    data = framData,
+    method = "ps"
+)
+  
+framData$weights <- weight_results$weights
+```
+
+We then re-balence these results:
+
+```{r rebalence, echo=TRUE}
+survey_design <- svydesign(
+    ids = ~1,  # No cluster identifier
+    weights = ~weights,
+    data = framData)
+  
+  # Create weighted table one
+weighted_table_one <- svyCreateTableOne(
+    vars = covariates, 
+    strata = "currentSmoker", 
+    data = survey_design,
+    test = TRUE)
+
+weighted_table_one
+```
+
+Finally, we will run the logistic regression models based on the results from our different methods. The model here is trying to predict `TenYearCHD` based on the `currentSmoker` these results from our previous methods.
+
+# Results
+
+```{r outcomeAnalysis, echo=TRUE}
+og_model <- glm(TenYearCHD ~ currentSmoker, 
+    data = framData, 
+    family = binomial())
+
+matched_model <- glm(TenYearCHD ~ currentSmoker, 
+    data = matched_data, 
+    family = binomial())
+  
+weighted_model <- glm(TenYearCHD ~ currentSmoker, 
+    data = framData, 
+    weights = weights,
+    family = binomial())
+  
+# Summarize results
+results <- list(
+    Original = summary(og_model),
+    Matched = summary(matched_model),
+    Weighted = summary(weighted_model))
+  
+results
+```
+The results from the our utilized methods are seen below.
+
+**Analysis of the regression results:**
+P-value: $0.277$
+
+**Matched Data Model:**
+P-value: $0.0928$
+
+**Weighted Data Model:**
+P-value: 2.62e-09$
+
+The inverse probability weighting revealed a significant smoking-CHD risk relationship while the matching slightly improved the coefficient's significance. When you took into account the weighting it provided the most precise estimate, suggesting an association in the data.

@@ -341,7 +341,7 @@ model3_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "AC
                      "EventPart_22", "mentor_22", "ShareIdeas_22")
 
 # Combined Model | Model4
-model4 <- "MHealthConcern_1 ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+K10Q40_R+PHYSACTIV+
+model4 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+K10Q40_R+PHYSACTIV+
           age3_22+sex_22+MotherMH_22+FatherMH_22+ScreenTime_22+
           ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
           EventPart_22+mentor_22+ShareIdeas_22+ACE2more11_22+ACE6ctHH_22+

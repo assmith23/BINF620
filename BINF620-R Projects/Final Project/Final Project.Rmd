@@ -16,17 +16,79 @@ library(matrixStats)
 # Abstract
 
 # Background
-Explanation of area of focus being mental health with the focus on groups 2/3
+With a Global Pandemic behind us and mental health concerns (MHC) on the rise, researchers have intensified their focus on understanding the various social and family impacts experienced by children and adolescents during and after this unprecedented period. Based on data from 2021-2022, reported by the CDC 10% of children ages 3-17 had current, diagnosed anxiety. Moreover, 4% of children ages 3-17 had current, diagnosed depression. The rates grow when you examine teen groups specifically, 21% of teens reported symptoms of anxiety in the past two weeks and 17% reported symptoms of depression in the past two weeks.
+
+~~~ Figure 1
+
+This paper aims to explore the various impacts of one's childhood in shaping the mental health outcomes of children and adolescents. Using data from the 2022 National Survey of Children’s Health (NSCH) and the application of different statistical methods and neural networks to explore interactions between our selected variables, to identify key predictors that could positively impact the mental health of an individual.
+
 ## Data Exploration
-Talk about age then the scoring then the proportions of the score.
-### Mental Health Score
-### Race Exploration
+The 2022 NSCH Survey is completed by parents/caregivers of children and able youth, containing 900+ data points. For the purposes of this research roughly 50 variables were selected for further analysis with a subset of about 20 variables utilized in the subsequent models.
+
+### Predictors
+There are various factors that can impacts ones mental health. Stress is a big factor that contributes to ones mental health. Adverse childhood experiences, family dynamics, social environments, and neighborhood dynamics are all forms the stress can develop and contribute to mental health concerns. Indicators such as parental MHC, emotional support providers, adverse community and family events, and household experiences all contribute to perceived stress and MHC.
+
+An outline and dictionary of the selected predictors is provided here.
+
+## Mental Health Concern
+The selected variables of interest are depression and anxiety. These variables are recorded in a question as "Has a doctor or other health care provider EVER told you that this child has?...Anxiety Problems? or ...Depression?". Followed by, "If yes, does this child CURRENTLY have the condition?" The final question asks for a level of severity provided by 1 = Mild, 2 = Moderate, 3 = Severe.
+
+For our research focus, we utilized three different outcome variables encoded from different reporting variables for depression and anxiety.
+
+- `MHealthConcern`, a binary variable encoded as:
+$$
+\begin{align*}
+  0 &= \text{`K2Q33B` or `K2Q32B`} = 2 \text{('No')} \\
+  1 &= \text{`K2Q33B` or `K2Q32B`} = 1 \text{('Yes')}
+\end{align*}
+$$
+
+- `MHealthScore`, a numerical categorical variable encoded as:
+$$
+\begin{align*}
+  0 &= \text{`K2Q33A` or `K2Q32A`} = 2, &\text{ No reported depression or anxiety} \\
+  1 &= \text{`K2Q33A` or `K2Q32A`} = 1, &\text{ Reported depression or anxiety} \\
+  2 &= \text{`K2Q33B` or `K2Q32B`} = 1, &\text{ Currently has depression or anxiety} \\
+  3 &= \text{`K2Q33B` and `K2Q32B`} = 1, &\text{ Currently has depression and anxiety}
+\end{align*}
+$$
+This variable is helpful to identify differences between individuals who once had a MHC vs those that may or may not currently have a MHC.
+
+- `MHealthScorePlus`, a numerical score variable encoded as:
+$$
+\begin{align*}
+  &= \text{'MHealthConcern'} + \text{'K2Q33C'} + \text{'K2Q32C'}
+\end{align*}
+$$
+This variable takes into account the severity of the MHC. The max score for this variable is 9 being that an individual currently has depression and anxiety and the severity of their depression and anxiety are listed as Severe.
+
+Our predictor variables will allow us to predict our main outcome variable being the binary outcome for individuals currently experiencing depression or anxiety. This multi-level approach ensures a comprehensive understanding of how various predictors contribute to depression and anxiety in children and adolescents.
+
 
 # Study Design
+Building upon this foundation, we are offering a robust and data-driven perspective on MHC among youth, outlining the statistical methodologies used to investigate these relationships.
+
 ## Aims
+The goal of this research it to utilized our identified predictors and their association depression and anxiety in children and adolescents, ages 6-17. Our analyses are based on the 2022 NSCH Survey data and do not include clinical diagnoses or longitudinal evidence.
+
+Furthermore:
+- To examine how different family dynamics, social factors, and childhood experiences impact MHC.
+- To examine the severity associated to different MHC.
+- To explore the performance of the neural networks in predicting MHC.
+
 ## Population Selection
+The data provided was from the 2022 National Survey of Children’s Health (NSCH).
+
+Our selected population is children and adolescents, ages 6-17; these records can easily be sorted by the variable `age3_22` divided into 3 groups 0-5: group 1, 6-11: group 2, and 11-17: group 3. For our purposed we have filtered the data on group 2 and 3, reflecting our research interest.
+
+There is no filter removing any specific race, but further analysis is needed to understand how the different selected predictors may vary among race subsequently impact the prediction of our outcome variable.
+
+The resulting sample was comprised of $34,362$ observations, with a binomial distribution centered around a mean age of approximately $12$ years old. This age range represents a critical period for social and mental development and is particularly significant due to its heightened vulnerability to emotional instability.
+
 ## Data and Materials
 ## Split and Train Data
+
+
 ## Logistic Regression to Show Viability
 
 # Statistical Analysis

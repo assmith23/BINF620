@@ -20,6 +20,7 @@ library(tidyverse)
 library(neuralnet)
 library(naivebayes)
 library(tidyr)
+library(fastDummies)
 
 
 
@@ -77,7 +78,7 @@ calculate_metrics <- function(conf_matrix) {
   FP <- conf_matrix["1", "0"]
   FN <- conf_matrix["0", "1"]
   
-  accuracy <- (TP + TN) / sum(conf1)
+  accuracy <- (TP + TN) / sum(conf_matrix)
   sensitivity <- TP / (TP + FN)
   specificity <- TN / (TN + FP)
   FPR <- FP / (FP + TN)
@@ -107,7 +108,7 @@ nn_stats <- function(nn, test_data) {
   test_data$MHealthConcern <- factor(test_data$MHealthConcern, levels = c(0, 1))
   conf <- table(Predicted = pred_class, Actual = test_data$MHealthConcern)
   
-  return(list(rmse = rmse_value, confusion_matrix = conf))
+  return(list(rmse = rmse, confusion_matrix = conf))
 }
 
 ## Load Data ##
@@ -335,12 +336,12 @@ model3 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+
 model32 <- "MHealthScore ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+
           age3_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
           EventPart_22+mentor_22+ShareIdeas_22"
-model3_filter <- c("MHealthScore", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11",
+model3_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11",
                      "age3_22", "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22",
                      "EventPart_22", "mentor_22", "ShareIdeas_22")
 
 # Combined Model | Model4
-model4 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+K10Q40_R+PHYSACTIV+
+model4 <- "MHealthConcern_1 ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+K10Q40_R+PHYSACTIV+
           age3_22+sex_22+MotherMH_22+FatherMH_22+ScreenTime_22+
           ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
           EventPart_22+mentor_22+ShareIdeas_22+ACE2more11_22+ACE6ctHH_22+
@@ -350,7 +351,7 @@ model42 <- "MHealthScore ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+K10Q40_R+PHYSACTIV+
           ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
           EventPart_22+mentor_22+ShareIdeas_22+ACE2more11_22+ACE6ctHH_22+
           NbhdSupp_22+NbhdSafe_22"
-model4_filter <- c("MHealthScore", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11", 
+model4_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11", 
                    "K10Q40_R", "PHYSACTIV", "age3_22", "sex_22", "MotherMH_22", 
                    "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
                    "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
@@ -371,25 +372,6 @@ test_data$MHealthConcern <- factor(test_data$MHealthConcern)
 train_data$MHealthConcern <- factor(train_data$MHealthConcern)
 test_data$K8Q35<- as.numeric(as.character(test_data$K8Q35))
 train_data$K8Q35 <- as.numeric(as.character(train_data$K8Q35))
-
-
-# Tree
-tree_model <- rpart(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
-                      NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
-                    data = train_data,
-                    method = "anova",
-                    control = rpart.control(cp = 0.001))
-
-rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = TRUE)
-
-# Fit a random forest model
-rf_model <- randomForest(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
-                           NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
-                         data = train_data, importance = TRUE)
-
-plot(rf_model)
-rf_predictions <- predict(rf_model, test_data)
-rf_mse <- mean((rf_predictions - test_data$MHealthConcern)^2)
 
 # Logistic Regression
 
@@ -523,8 +505,8 @@ nn_model11 <- neuralnet(model1,
                       #hidden = c(2, 1),
                       algorithm = "rprop+",
                       err.fct = "ce")
-nn_results <- nn_stats(nn_model1, test_data)
-rmse <- nn_results$rmse
+nn_results <- nn_stats(nn_model11, test_data)
+rmse_nn11 <- nn_results$rmse
 metrics_nn11 <- calculate_metrics(nn_results$confusion_matrix)
 knitr::kable(metrics_nn11, col.names = c("Metric", "Value"), caption = "Neural Network Model 1 Performance Metrics | NN1_1")
 
@@ -537,7 +519,7 @@ nn_model12 <- neuralnet(model1,
                        algorithm = "rprop+",
                        err.fct = "ce")
 nn_results <- nn_stats(nn_model12, test_data)
-rmse_nn <- nn_results$rmse
+rmse_nn12 <- nn_results$rmse
 metrics_nn12 <- calculate_metrics(nn_results$confusion_matrix)
 knitr::kable(metrics_nn12, col.names = c("Metric", "Value"), caption = "Neural Network Model 2 Performance Metrics | NN1_2")
 
@@ -547,30 +529,68 @@ scaled_data <- train_data[, model4_filter] %>%
   mutate(MHealthConcern = train_data$MHealthConcern) %>%
   mutate(MHealthConcern = as.numeric(as.factor(MHealthConcern)) - 1)
 
-nn_model41 <- neuralnet(model4,
-                        data = scaled_data, 
+
+train_data <- train_data[, model4_filter]
+test_data <- test_data[, model4_filter]
+train_data <- dummy_cols(train_data, 
+                         remove_selected_columns = TRUE, 
+                         remove_first_dummy = TRUE)
+test_data <- dummy_cols(test_data, 
+                         remove_selected_columns = TRUE, 
+                         remove_first_dummy = TRUE)
+model4_string <- paste(colnames(train_data), collapse = " + ")
+model4_string <- gsub("MHealthConcern_1", "", model4_string)
+model4_string <- as.formula(paste("MHealthConcern_1 ~", model4_string))
+
+nn_model41 <- neuralnet(model4_string,
+                        data = train_data, 
                         linear.output = FALSE,
                         likelihood = TRUE,
                         #hidden = c(2, 1),
                         algorithm = "rprop+",
                         err.fct = "ce")
 nn_results <- nn_stats(nn_model41, test_data)
-rmse_nn <- nn_results$rmse
+rmse_nn41 <- nn_results$rmse
 metrics_nn41 <- calculate_metrics(nn_results$confusion_matrix)
 knitr::kable(metrics_nn41, col.names = c("Metric", "Value"), caption = "Neural Network Model 4 Performance Metrics | NN4_1")
 
-nn_model42 <- neuralnet(model4,
-                        data = scaled_data, 
+nn_model42 <- neuralnet(model4_string,
+                        data = train_data, 
                         linear.output = FALSE,
                         likelihood = TRUE,
                         hidden = c(2, 1),
                         algorithm = "rprop+",
                         err.fct = "ce")
 nn_results <- nn_stats(nn_model42, test_data)
-rmse_nn <- nn_results$rmse
+rmse_nn42 <- nn_results$rmse
 metrics_nn42 <- calculate_metrics(nn_results$confusion_matrix)
 knitr::kable(metrics_nn42, col.names = c("Metric", "Value"), caption = "Neural Network Model 4 Performance Metrics | NN4_2")
 
+done = FALSE
+while(done == FALSE){
+  nn_model43 <- neuralnet(model4_string,
+                          data = train_data, 
+                          linear.output = FALSE,
+                          likelihood = TRUE,
+                          hidden = c(5, 5, 3),
+                          algorithm = "rprop+",
+                          err.fct = "ce")
+  if (!is.null(nn_model43$result.matrix)) {
+    done <- TRUE
+  }
+}
+nn_results <- nn_stats(nn_model43, test_data)
+rmse_nn43 <- nn_results$rmse
+metrics_nn43 <- calculate_metrics(nn_results$confusion_matrix)
+knitr::kable(metrics_nn43, col.names = c("Metric", "Value"), caption = "Neural Network Model 4 Performance Metrics | NN4_3")
+
+
+
+
+
+library(vip)
+library(NeuralNetTools)
+vip(nn_model43)
 
 
 
@@ -586,3 +606,23 @@ grid.arrange(fig3_1, fig3_2, ncol = 2, nrow = 1)
 grid.arrange(fig4)
 # Figure 5 | Figure 0.0 --> Kmeans results
 grid.arrange(fig5)
+
+
+
+# Tree
+tree_model <- rpart(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
+                      NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
+                    data = train_data,
+                    method = "anova",
+                    control = rpart.control(cp = 0.001))
+
+rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = TRUE)
+
+# Fit a random forest model
+rf_model <- randomForest(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
+                           NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
+                         data = train_data, importance = TRUE)
+
+plot(rf_model)
+rf_predictions <- predict(rf_model, test_data)
+rf_mse <- mean((rf_predictions - test_data$MHealthConcern)^2)

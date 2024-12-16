@@ -7,7 +7,9 @@
 # *
 # *************************************
 
-## Load Libraries
+## Load Libraries ##
+library(dplyr)
+library(ggplot2)
 library(RColorBrewer)
 library(ROCR)
 library(randomForest)
@@ -21,29 +23,10 @@ library(neuralnet)
 library(naivebayes)
 library(tidyr)
 library(fastDummies)
-
-
-
-library(dplyr)
+library(vip)
+library(NeuralNetTools)
 library(rpart)
 library(rpart.plot)
-library(survival)
-library(ranger)
-library(ggplot2)
-library(ggfortify)
-library("survminer")
-library(corrplot)
-library(ggcorrplot)
-library(mice)
-library(class)
-library(VIM)
-library(MASS)
-library(boot)
-library(pROC)
-library(MatchIt)
-library(tableone)
-library(WeightIt)
-library(survey)
 
 
 ## Functions ##
@@ -111,6 +94,16 @@ nn_stats <- function(nn, test_data) {
   return(list(rmse = rmse, confusion_matrix = conf))
 }
 
+get_model_metrics <- function(model, test_data, target_column) {
+  predictions <- predict(model, newdata = test_data, type = "response")
+  predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+  conf_matrix <- table(Predicted = predicted_classes, Actual = test_data$MHealthConcern)
+  
+  # Calculate metrics using the previously defined function
+  metrics_df <- calculate_metrics(conf_matrix)
+  return(metrics_df)
+}
+
 ## Load Data ##
 
 # Load Original Dataset
@@ -133,13 +126,14 @@ selectedColumns <- c(
   "ShareIdeas_22", "TalkAbout_22", "ACE2more11_22", "ACE6ctHH_22", "ACE2more6HH_22", 
   "ACE1more4Com_22", "NbhdSupp_22", "NbhdSafe_22", "SchlSafe_22", "FAMILY_R"
 )
-filteredData <- rawData[, selectedColumns]
+  #filteredData <- rawData[, selectedColumns]
 
 # Save Filtered Data
   #save(filteredData, file = "Final Project/filtered_NSCH.RData")
 
 # Load Filtered Data
 load("Final Project/filtered_NSCH.RData")
+currData <- filteredData
 
 # Load Model Data
   #load("Final Project/modelData_NSCH.RData")
@@ -210,7 +204,8 @@ modelFilter <- c("SC_AGE_YEARS", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12",
                  "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
                  "EventPart_22", "mentor_22", "ShareIdeas_22", 
                  "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R",
-                 "K2Q32B", "K2Q33B", "K2Q32A", "K2Q33A")
+                 "K2Q32B", "K2Q33B", "K2Q32A", "K2Q33A", "SC_AGE_YEARS", "MHealthConcern")
+
 modelData <- currData[, modelFilter]
 
 # Mutation 1
@@ -235,11 +230,11 @@ modelData <- modelData %>%
 
 # Mutation 4
 modelData$PHYSACTIV <- ifelse(modelData$PHYSACTIV %in% c(1,0), 0, 
-                              ifelse(modelData$PHYSACTIV %in% c(3,4), 1,NA))
+                              ifelse(modelData$PHYSACTIV %in% c(3,4), 1,99))
 
 # Mutation 5
 modelData$ACE4ctCom_22 <- ifelse(modelData$ACE4ctCom_22 == 1, 0, 
-                                 ifelse(modelData$ACE4ctCom_22 == 2, 1, NA))
+                                 ifelse(modelData$ACE4ctCom_22 == 2, 1, 99))
 
 modelData$AftSchAct_22 <- ifelse(modelData$AftSchAct_22 == 2, 0, 
                                  ifelse(modelData$AftSchAct_22 == 1, 1, 99))
@@ -285,10 +280,43 @@ modelData <- modelData %>%
 
 modelData$mentor_22 <- modelData$mentor_22 %% 2
 
-#save(modelData, file = "modelData_NSCH.RData")
+  #save(modelData, file = "modelData_NSCH.RData")
 
 
 ## Data Exploration ##
+
+# Explore Mother/Father Mental Health History
+long_data <- currData %>%
+  pivot_longer(cols = c(MotherMH_22, FatherMH_22), 
+               names_to = "Parent", 
+               values_to = "Category") %>%
+  group_by(Parent, Category) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(proportion = count / sum(count))
+  
+# Plot proportions
+fig6 <- ggplot(long_data, aes(x = factor(Category), y = proportion, fill = Parent)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    x = "Category",
+    y = "Proportion",
+    title = "Figure 1.1 | Proportions of Mental Health Severity by Categories of Parent",
+    fill = "Parent"
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "1" = "Excellent",
+      "2" = "Good",
+      "3" = "Fair or Poor",
+      "95" = "No Primary Caregiver",
+      "99" = "Missing Values"
+    )
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "right") +
+  scale_fill_brewer(palette = "Dark2")
 
 # Explore Health Score by Age Group
 mhealth_by_age <- currData %>%
@@ -309,7 +337,7 @@ fig1 <- ggplot(mhealth_by_age, aes(x = factor(age3_22), y = Proportion, fill = f
                                "2: High Severity", 
                                "3: Highest Severity")) +
   labs(
-    title = "Figure 0.0 | Mental Health Severity Levels",
+    title = "Figure 2.1 | Mental Health Severity Levels",
     subtitle = "Proportion of Levels by Age Group",
     x = "Age Group",
     y = "Proportion"
@@ -338,7 +366,7 @@ fig2 <- ggplot(score_summary, aes(x = factor(MHealthScore), y = Count, fill = fa
             fontface = "bold") +
   scale_fill_brewer(palette = "Blues") +
   labs(
-    title = " Figure 0.0 | Distribution of Mental Health Scores",
+    title = " Figure 3.1 | Distribution of Mental Health Scores",
     subtitle = "Breakdown of Mental Health Indicators (Age Group 2 & 3)",
     x = "Mental Health Score",
     y = "Number of Individuals",
@@ -362,7 +390,7 @@ fig3_1 <- raceData %>%
   ggplot(aes(x = RACE, fill = RACE)) +  # Add fill aesthetic for color
   geom_bar() +  # Add geom_bar to create the bar plot
   labs(
-    title = "Figure 0.0 | Distribution of Racial Categories",
+    title = "Figure 4.1 | Distribution of Racial Categories",
     subtitle = "Age Group 2 & 3",
     x = "Race",
     y = "Count"
@@ -381,7 +409,7 @@ fig3_2 <- raceData %>%
   filter(age3_22 == 2 | age3_22 == 3) %>%
   ggplot(aes(x = RACE, fill = MHealthConcern)) +
   geom_bar(position = "fill") +
-  labs(title = "Figure 0.0 | Mental Health Concerns by Race",
+  labs(title = "Figure 4.2 | Mental Health Concerns by Race",
        subtitle = "Age Group 2 & 3",
        x = "Race",
        y = "Proportion",
@@ -399,28 +427,19 @@ fig3_2 <- raceData %>%
 # Neighborhood / Activities / Support Model | Model1
 model1 <- "MHealthConcern ~ HHCOUNT+PHYSACTIV+K8Q35+mentor_22+ShareIdeas_22+
           ScreenTime_22+ACE4ctCom_22+AftSchAct_22+NbhdSupp_22+NbhdSafe_22"
-model12 <- "MHealthScore ~ HHCOUNT+PHYSACTIV+K8Q35+mentor_22+ShareIdeas_22+
-          ScreenTime_22+ACE4ctCom_22+ AftSchAct_22+NbhdSupp_22+NbhdSafe_22"
 model1_filter <- c("MHealthConcern", "HHCOUNT", "PHYSACTIV", "K8Q35", "mentor_22", "ShareIdeas_22",
                    "ScreenTime_22", "ACE4ctCom_22", "AftSchAct_22", "NbhdSupp_22", "NbhdSafe_22")
 
 # Family / History Model | Model2
-model2 <- "MHealthConcern ~ BORNUSA+ACE12+ACE11+K10Q40_R+
-          age3_22+sex_22+MotherMH_22+FatherMH_22+SC_RACE_R+
-          EventPart_22+mentor_22+ACE2more11_22+ACE6ctHH_22"
-model22 <- "MHealthScore ~ BORNUSA+ACE12+ACE11+K10Q40_R+
-          age3_22+sex_22+MotherMH_22+FatherMH_22+SC_RACE_R+
-          EventPart_22+mentor_22+ACE2more11_22+ACE6ctHH_22"
+model2 <- "MHealthConcern ~ BORNUSA+ACE12+SC_AGE_YEARS+sex_22+MotherMH_22+FatherMH_22+SC_RACE_R+
+          EventPart_22+mentor_22+ACE6ctHH_22+FAMILY_R"
 model2_filter <- c("MHealthConcern", "BORNUSA", "ACE12", "ACE11", "K10Q40_R",
                    "age3_22", "sex_22", "MotherMH_22", "FatherMH_22", "SC_RACE_R",
                    "EventPart_22", "mentor_22", "ACE2more11_22", "ACE6ctHH_22")
 
 # Adverse Events / Friends Model | Model3
-model3 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+
-          age3_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
-          EventPart_22+mentor_22+ShareIdeas_22"
-model32 <- "MHealthScore ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+
-          age3_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
+model3 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+
+          SC_AGE_YEARS+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
           EventPart_22+mentor_22+ShareIdeas_22"
 model3_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11",
                      "age3_22", "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22",
@@ -432,17 +451,26 @@ model4 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+PHYSACTIV+
           ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
           EventPart_22+mentor_22+ShareIdeas_22+ACE6ctHH_22+
           NbhdSupp_22+NbhdSafe_22+FAMILY_R"
-model42 <- "MHealthScore ~ HHCOUNT+BORNUSA+K8Q35+ACE12+PHYSACTIV+
-          SC_AGE_YEARS+sex_22+MotherMH_22+FatherMH_22+ScreenTime_22+
-          ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
-          EventPart_22+mentor_22+ShareIdeas_22+ACE6ctHH_22+
-          NbhdSupp_22+NbhdSafe_22"
 model4_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", 
                    "PHYSACTIV", "SC_AGE_YEARS", "sex_22", "MotherMH_22", 
                    "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
                    "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
                    "EventPart_22", "mentor_22", "ShareIdeas_22", 
                    "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
+
+# Final Model
+final_model <- "MHealthConcern ~ SC_AGE_YEARS * sex_22 * SC_RACE_R + PHYSACTIV *
+                                 AftSchAct_22 * ACEct11_22  + ACE4ctCom_22 +
+                                 MotherMH_22 * FatherMH_22 + FAMILY_R + HHCOUNT + bullied_22 + ACE12 + 
+                                 ShareIdeas_22 + mentor_22"
+
+# Factor Variables
+factor_Variables <- c("MHealthConcern", "BORNUSA", "K8Q35", "ACE12", 
+                      "PHYSACTIV", "sex_22", "MotherMH_22",  
+                      "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
+                      "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
+                      "EventPart_22", "mentor_22", "ShareIdeas_22", 
+                      "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
 
 ## Data Setup ##
 
@@ -458,6 +486,9 @@ train_data$MHealthConcern <- factor(train_data$MHealthConcern)
 test_data$K8Q35<- as.numeric(as.character(test_data$K8Q35))
 train_data$K8Q35 <- as.numeric(as.character(train_data$K8Q35))
 
+train_data[factor_Variables] <- lapply(train_data[factor_Variables], as.factor)
+test_data[factor_Variables] <- lapply(test_data[factor_Variables], as.factor)
+
 # Logistic Regression
 
 # Model 1 LR
@@ -468,10 +499,6 @@ logreg_1 <- glm(model1,
 summary(logreg_1)
 logreg_1_accuracy <- getAccuracy_glm(logreg_1)
 
-logreg_12 <- glm(model12, data = train_data,)
-summary(logreg_12)
-logreg_12_accuracy <- getAccuracy_glm(logreg_12, "Binomial")
-
 # Model 2 LR
 logreg_2 <- glm(model2,
                 data = train_data, 
@@ -479,10 +506,6 @@ logreg_2 <- glm(model2,
 )
 summary(logreg_2)
 logreg_2_accuracy <- getAccuracy_glm(logreg_2)
-
-logreg_22 <- glm(model22, data = train_data,)
-summary(logreg_22)
-logreg_22_accuracy <- getAccuracy_glm(logreg_22, "Binomial")
 
 # Model 3 LR
 logreg_3 <- glm(model3,
@@ -492,10 +515,6 @@ logreg_3 <- glm(model3,
 summary(logreg_3)
 logreg_3_accuracy <- getAccuracy_glm(logreg_3)
 
-logreg_32 <- glm(model32, data = train_data,)
-summary(logreg_32)
-logreg_32_accuracy <- getAccuracy_glm(logreg_32, "Binomial")
-
 # Model 4 LR
 logreg_4 <- glm(model4,
                 data = train_data, 
@@ -504,46 +523,31 @@ logreg_4 <- glm(model4,
 summary(logreg_4)
 logreg_4_accuracy <- getAccuracy_glm(logreg_4)
 
-logreg_42 <- glm(model42, data = train_data,)
-summary(logreg_42)
-logreg_42_accuracy <- getAccuracy_glm(logreg_42, "Binomial")
-
-accuracy_df <- data.frame(
-  Model = c(
-    "Model 1", "Model 1.2", 
-    "Model 2", "Model 2.2", 
-    "Model 3", "Model 3.2", 
-    "Model 4", "Model 4.2"
-  ),
-  Accuracy = c(
-    logreg_1_accuracy, logreg_12_accuracy,
-    logreg_2_accuracy, logreg_22_accuracy,
-    logreg_3_accuracy, logreg_32_accuracy,
-    logreg_4_accuracy, logreg_42_accuracy
-  )
+# Final Model
+logreg_final <- glm(final_model,
+                data = train_data, 
+                family = binomial()
 )
+summary(logreg_final)
+logreg_final_accuracy <- getAccuracy_glm(logreg_final)
 
-accuracy_df$ModelGroup <- substr(accuracy_df$Model, 1, 6)
+plot(logreg_final)
 
-fig4 <- ggplot(accuracy_df, aes(x = Model, y = Accuracy, fill = ModelGroup)) +
-  geom_bar(stat = "identity") +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "none") +
-  labs(title = "Figure 0.0 | Logistic Model Accuracies",
-       x = "Model",
-       y = "Accuracy") +
-  scale_fill_brewer(palette = "Dark2")
+# Combine Results
+models <- list(logreg_1, logreg_2, logreg_3, logreg_4, logreg_final)
+model_names <- c("Model 1", "Model 2", "Model 3", "Model 4", "Final Model")
+all_metrics <- lapply(models, get_model_metrics, test_data = test_data, target_column = "MHealthConcern")
+combined_metrics <- do.call(rbind, all_metrics)
+combined_metrics$Model <- rep(model_names, each = nrow(combined_metrics) / length(model_names))
+logisticReg_metrics <- combined_metrics[, c("Model", "Metric", "Value")]
 
 # K Means
 
-clusterFilter <- c("HHCOUNT", "BORNUSA", "K8Q35", "ACE12",
+clusterFilter <- c("HHCOUNT", "BORNUSA", "ACE12",
                   "PHYSACTIV", "SC_AGE_YEARS", "sex_22", "MotherMH_22", "FatherMH_22",
                   "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", "SC_RACE_R", "bully_22",
                   "bullied_22", "AftSchAct_22", "EventPart_22", "mentor_22", "ShareIdeas_22",
-                  "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "MHealthConcern", "FAMILY_R")
+                  "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R", "MHealthConcern")
 
 clusterData <- modelData
 clusterData <- clusterData[, clusterFilter]
@@ -577,136 +581,62 @@ fig5 <- ggplot(combined_data, aes(x = Value, fill = Type)) +
 
 # Neural Network
 
-# Model 1 NN1_1
-scaled_data <- train_data[, model1_filter] %>%
-  mutate(across(where(is.numeric) & !matches("MHealthConcern"), scale)) %>%
-  mutate(MHealthConcern = train_data$MHealthConcern) %>%
-  mutate(MHealthConcern = as.numeric(as.factor(MHealthConcern)) - 1)
+# Final Model
+n <- nrow(modelData)
+train_size <- floor(0.7 * n)
+train_indices <- sample(seq_len(n), train_size)
 
-nn_model11 <- neuralnet(model1,
-                      data = scaled_data, 
-                      linear.output = FALSE,
-                      likelihood = TRUE,
-                      #hidden = c(2, 1),
-                      algorithm = "rprop+",
-                      err.fct = "ce")
-nn_results <- nn_stats(nn_model11, test_data)
-rmse_nn11 <- nn_results$rmse
-metrics_nn11 <- calculate_metrics(nn_results$confusion_matrix)
-knitr::kable(metrics_nn11, col.names = c("Metric", "Value"), caption = "Neural Network Model 1 Performance Metrics | NN1_1")
-
-# Model 1 NN1_2
-nn_model12 <- neuralnet(model1,
-                       data = scaled_data, 
-                       linear.output = FALSE,
-                       likelihood = TRUE,
-                       hidden = c(2, 1),
-                       algorithm = "rprop+",
-                       err.fct = "ce")
-nn_results <- nn_stats(nn_model12, test_data)
-rmse_nn12 <- nn_results$rmse
-metrics_nn12 <- calculate_metrics(nn_results$confusion_matrix)
-knitr::kable(metrics_nn12, col.names = c("Metric", "Value"), caption = "Neural Network Model 2 Performance Metrics | NN1_2")
-
-# Model 4 NN4_1
-scaled_data <- train_data[, model4_filter] %>%
-  mutate(across(where(is.numeric) & !matches("MHealthConcern"), scale)) %>%
-  mutate(MHealthConcern = train_data$MHealthConcern) %>%
-  mutate(MHealthConcern = as.numeric(as.factor(MHealthConcern)) - 1)
-
-
+train_data <- modelData[train_indices, ]
+test_data <- modelData[-train_indices, ]
 train_data <- train_data[, model4_filter]
 test_data <- test_data[, model4_filter]
+train_data[factor_Variables] <- lapply(train_data[factor_Variables], as.factor)
+test_data[factor_Variables] <- lapply(test_data[factor_Variables], as.factor)
 train_data <- dummy_cols(train_data, 
                          remove_selected_columns = TRUE, 
                          remove_first_dummy = TRUE)
 test_data <- dummy_cols(test_data, 
-                         remove_selected_columns = TRUE, 
-                         remove_first_dummy = TRUE)
-model4_string <- paste(colnames(train_data), collapse = " + ")
-model4_string <- gsub("MHealthConcern_1", "", model4_string)
-model4_string <- as.formula(paste("MHealthConcern_1 ~", model4_string))
+                        remove_selected_columns = TRUE, 
+                        remove_first_dummy = TRUE)
+model_final_string <- paste(colnames(train_data), collapse = " + ")
+model_final_string <- gsub("MHealthConcern_1", "", model_final_string)
+model_final_string <- as.formula(paste("MHealthConcern_1 ~", model_final_string))
 
-nn_model41 <- neuralnet(model4_string,
+nn_model_final <- neuralnet(model_final_string,
                         data = train_data, 
                         linear.output = FALSE,
                         likelihood = TRUE,
-                        algorithm = "rprop+",
+                        algorithm = "rprop-",
+                        stepmax = 1e+06,
                         err.fct = "ce")
-nn_results <- nn_stats(nn_model41, test_data)
-rmse_nn41 <- nn_results$rmse
-metrics_nn41 <- calculate_metrics(nn_results$confusion_matrix)
-knitr::kable(metrics_nn41, col.names = c("Metric", "Value"), caption = "Neural Network Model 4 Performance Metrics | NN4_1")
 
-nn_model42 <- neuralnet(model4_string,
-                        data = train_data, 
-                        linear.output = FALSE,
-                        likelihood = TRUE,
-                        hidden = c(2, 1),
-                        algorithm = "rprop+",
-                        err.fct = "ce")
-nn_results <- nn_stats(nn_model42, test_data)
-rmse_nn42 <- nn_results$rmse
-metrics_nn42 <- calculate_metrics(nn_results$confusion_matrix)
-knitr::kable(metrics_nn42, col.names = c("Metric", "Value"), caption = "Neural Network Model 4 Performance Metrics | NN4_2")
-
-done = FALSE
-while(done == FALSE){
-  nn_model43 <- neuralnet(model4_string,
-                          data = train_data, 
-                          linear.output = FALSE,
-                          likelihood = TRUE,
-                          hidden = c(5, 5, 3),
-                          algorithm = "rprop+",
-                          err.fct = "ce")
-  if (!is.null(nn_model43$result.matrix)) {
-    done <- TRUE
-  }
-}
-nn_results <- nn_stats(nn_model43, test_data)
-rmse_nn43 <- nn_results$rmse
-metrics_nn43 <- calculate_metrics(nn_results$confusion_matrix)
-knitr::kable(metrics_nn43, col.names = c("Metric", "Value"), caption = "Neural Network Model 4 Performance Metrics | NN4_3")
-
-
-
-
-
-library(vip)
-library(NeuralNetTools)
-vip(nn_model43)
-
-
+nn_model_final <- neuralnet(model_final_string,
+                            data = train_data, 
+                            linear.output = FALSE,
+                            likelihood = TRUE,
+                            algorithm = "rprop+",
+                            err.fct = "ce",
+                            rep = 5)
+nn_results <- nn_stats(nn_model_final, test_data)
+rmse_nnFINAL <- nn_results$rmse
+metrics_nnFINAL <- calculate_metrics(nn_results$confusion_matrix)
+vip(nn_model_final)
+plot(nn_model_final)
 
 
 ### Show Figures ###
-# Figure 1 | Figure 0.0 --> Health Score by Age Group Filled by Score
+# Figure 1 | Figure 2.1 --> Health Score by Age Group Filled by Score
 grid.arrange(fig1)
-# Figure 2 | Figure 0.0 --> Mental Health Score Proportion filtered by Age Group 2/3
+# Figure 2 | Figure 3.1 --> Mental Health Score Proportion filtered by Age Group 2/3
 grid.arrange(fig2)
-# Figure 3 | Figure 0.0 --> Mental Health Score by Race
+# Figure 3 | Figure 4.0 --> Mental Health Score by Race
 grid.arrange(fig3_1, fig3_2, ncol = 2, nrow = 1)
-# Figure 4 | Figure 0.0 --> Logistic Models Accuracies
-grid.arrange(fig4)
-# Figure 5 | Figure 0.0 --> Kmeans results
+# Figure 5 | Figure 5.1 --> Kmeans results
 grid.arrange(fig5)
+# Figure 6 | Figure 1.1 --> Mother/Father Mental Health History
+grid.arrange(fig6)
 
-
-
-# Tree
-tree_model <- rpart(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
-                      NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
-                    data = train_data,
-                    method = "anova",
-                    control = rpart.control(cp = 0.001))
-
-rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = TRUE)
-
-# Fit a random forest model
-rf_model <- randomForest(MHealthConcern ~ HHCOUNT + K8Q35 + TalkAbout_22 + SC_RACE_R +
-                           NbhdSupp_22 + NbhdSafe_22 + ACE2more6HH_22 + INQ_INCOME,
-                         data = train_data, importance = TRUE)
-
-plot(rf_model)
-rf_predictions <- predict(rf_model, test_data)
-rf_mse <- mean((rf_predictions - test_data$MHealthConcern)^2)
+# Table 1 | Table 1.1 --> Logistic Regression Results
+knitr::kable(logisticReg_metrics, col.names = c("Model", "Metric", "Value"), caption = "Table 1.1 | Logistic Regression Model Performance Metrics")
+# Table 2 | Table 2.1 --> Final Neural Network
+knitr::kable(metrics_nnFINAL, col.names = c("Metric", "Value"), caption = "Table 2.1 | Neural Network Final Model Performance Metrics | NN5_1")

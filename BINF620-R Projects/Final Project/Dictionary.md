@@ -1,0 +1,79 @@
+# NSCH 2022 Survey Data Dictionary
+
+## Predictors
+- "SC_AGE_YEARS"
+- "sex_22"
+- "SC_RACE_R"
+- "BORNUSA"
+  - This variable is a binary variable representing if the individual was born in the USA.
+- "MotherMH_22"
+- "FatherMH_22"
+    - These variables signifies the severity of the mother/father mental health. This value is provided in:
+      - 1: Excellent
+      - 2: Good
+      - 3: Fair or Poor
+      - 95: No mother/father reported in the household as a primary caregiver of the child
+      - 99: Missing Values.
+- "EventPart_22"
+  - This variables expresses the value in parent participation in the child's life. The value is provided in:
+  - 1 "Always"
+  - 2 "Usually"
+  - 3 "Sometimes"
+  - 4 "Rarely or never"
+  - 99 "Missing"
+  - 90 "Children age 0-5 years"
+- "ACE6ctHH_22"
+  - This variable is representative of the number of household-based adverse childhood experiences based on 6 household items listed from the survey. No filters were performed on this variable.
+- "FAMILY_R"
+  - This variable categorizes the parent influence in the child's life. This value is provided in:
+    - 1 = Two biogical/adoptive parents, currently married
+    - 2 = Two biogical/adoptive parents, not currently married
+    - 3 = Two parents (at least one not biological/adoptive), currently married
+    - 4 = Two parents (at least one not biological/adoptive), not currently married
+    - 5 = Single mother
+    - 6 = Single father
+    - 7 = Grandparent household
+    - 8 = Other relation
+- "HHCOUNT"
+  - This variable expresses how many people are living in the household.
+- "NbhdSafe_22"
+  - This variable provides how safe the neighborhood is. The value is provided in:
+    - 1 "Definitely agree"
+    - 2 "Somewhat agree"
+    - 3 "Somewhat/Definitely disagree"
+- "ACE4ctCom_22"
+  - This variable signifies if the child experienced 1 or more community based adverse events. The value is provided in:
+    - 1 "No community-based adverse childhood experiences"
+    - 2 "Experienced 1 or more community-based ACEs"
+- "PHYSACTIV"
+  - This variable represents how many days did this child exercise, play a sport, or participate in physical activity for at least 60 minutes. The value is provided in:
+    - 1 = 0 days
+    - 2 = 1 - 3 days
+    - 3 = 4 - 6 days
+    - 4 = Every day
+- "AftSchAct_22"
+    - This variable represents if the child participates in organized activities outside school. It is a binary representation with missing values filtered out.
+- "ACE12"=
+  - This varaible is a binary representation if the child experienced "Treated or judged unfairly because of their sexual orientation or gender identity". 0:No, 1: Yes
+- "ACEct11_22"
+  - This variable represents the number of adverse events of the 11 possible.
+- "ScreenTime_22"
+    - This variable represents the number of hours spent on a screen daily. Missing values have been filtered out.
+- "bully_22"
+- "bullied_22"
+  - These varaibles represent if the child was bullied or is a bully. These values have filtered out missing values. The value is provided in:
+    - 1 "Never (in the past 12 months)"
+    - 2 "1-2 times (in the past 12 months)"
+    - 3 "1-2 times per month"
+    - 4 "1-2 times per week"
+    - 5 "Almost every day" 
+- "K8Q35"
+  - This variables signifies if the child has someone to turn too for emotional support. 0: No, 1: Yes.
+- "NbhdSupp_22"
+  - This variable signifies the children who live in supportive neighborhood. 0: No, 1: Yes. Missing values have been filtered out.
+- "ShareIdeas_22"
+  - This variable signifies how well children share ideas or talk about things that really matter with their parents. This variable has been filtered for missing values. The value is provided in:
+    - 1 "Very Well"
+    - 2 "Somewhat Well"
+    - 3 "Not at all or Not very well"
+- mentor_22

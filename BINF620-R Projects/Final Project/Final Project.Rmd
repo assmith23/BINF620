@@ -8,8 +8,19 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(dplyr)
-library(matrixStats)
+library(RColorBrewer)
+library(ROCR)
+library(randomForest)
+library(gridExtra)
+library(caret)
+library(mlbench)
+library(knitr)
+library(kableExtra)
+library(tidyverse)
+library(neuralnet)
+library(naivebayes)
+library(tidyr)
+library(fastDummies)
 ```
 
 ```{r dataSetup, include=FALSE}
@@ -17,6 +28,58 @@ library(matrixStats)
 load("filtered_NSCH.RData")
 currData <- filteredData
 load("modelData_NSCH.RData")
+```
+
+```{r defineModels, include=FALSE}
+## Define Models ##
+
+# Neighborhood / Activities / Support Model | Model1
+model1 <- "MHealthConcern ~ HHCOUNT+PHYSACTIV+K8Q35+mentor_22+ShareIdeas_22+
+          ScreenTime_22+ACE4ctCom_22+AftSchAct_22+NbhdSupp_22+NbhdSafe_22"
+model1_filter <- c("MHealthConcern", "HHCOUNT", "PHYSACTIV", "K8Q35", "mentor_22", "ShareIdeas_22",
+                   "ScreenTime_22", "ACE4ctCom_22", "AftSchAct_22", "NbhdSupp_22", "NbhdSafe_22")
+
+# Family / History Model | Model2
+model2 <- "MHealthConcern ~ BORNUSA+ACE12+SC_AGE_YEARS+sex_22+MotherMH_22+FatherMH_22+SC_RACE_R+
+          EventPart_22+mentor_22+ACE6ctHH_22+FAMILY_R"
+model2_filter <- c("MHealthConcern", "BORNUSA", "ACE12", "ACE11", "K10Q40_R",
+                   "age3_22", "sex_22", "MotherMH_22", "FatherMH_22", "SC_RACE_R",
+                   "EventPart_22", "mentor_22", "ACE2more11_22", "ACE6ctHH_22")
+
+# Adverse Events / Friends Model | Model3
+model3 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+
+          SC_AGE_YEARS+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
+          EventPart_22+mentor_22+ShareIdeas_22"
+model3_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11",
+                     "age3_22", "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22",
+                     "EventPart_22", "mentor_22", "ShareIdeas_22")
+
+# Combined Model | Model4
+model4 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+PHYSACTIV+
+          SC_AGE_YEARS*sex_22+MotherMH_22*FatherMH_22+ScreenTime_22+
+          ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
+          EventPart_22+mentor_22*ShareIdeas_22+ACE6ctHH_22+
+          NbhdSupp_22+NbhdSafe_22+FAMILY_R"
+model4_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", 
+                   "PHYSACTIV", "SC_AGE_YEARS", "sex_22", "MotherMH_22", 
+                   "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
+                   "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
+                   "EventPart_22", "mentor_22", "ShareIdeas_22", 
+                   "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
+
+# Final Model
+final_model <- "MHealthConcern ~ SC_AGE_YEARS * sex_22 * SC_RACE_R + PHYSACTIV *
+                                 AftSchAct_22 * ACEct11_22  + ACE4ctCom_22 +
+                                 MotherMH_22 * FatherMH_22 + FAMILY_R + HHCOUNT + bullied_22 + ACE12 + 
+                                 ShareIdeas_22 + mentor_22"
+
+# Factor Variables
+factor_Variables <- c("MHealthConcern", "BORNUSA", "K8Q35", "ACE12", 
+                      "PHYSACTIV", "sex_22", "MotherMH_22",  
+                      "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
+                      "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
+                      "EventPart_22", "mentor_22", "ShareIdeas_22", 
+                      "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
 ```
 
 # Title
@@ -55,13 +118,20 @@ There are a various number of filters filtering out missing values as described 
 
 ## Split and Train Data
 For the process of splitting the data into a test and training set we will utilize a 80/20 split. With a large dataset it is appropriate to utilize this split allowing sufficient data to train then test our methods.
-```{r split, eval = FALSE, include = TRUE}
+```{r split, eval=TRUE, message=FALSE, warning=FALSE, include=}
 n <- nrow(modelData)
-train_size <- floor(0.8 * n)
+train_size <- floor(0.7 * n)
 train_indices <- sample(seq_len(n), train_size)
 
-train_data <- modelData[train_indices, ]
-test_data <- modelData[-train_indices, ]
+train_data <- currData_age23[train_indices, ]
+test_data <- currData_age23[-train_indices, ]
+test_data$MHealthConcern <- factor(test_data$MHealthConcern)
+train_data$MHealthConcern <- factor(train_data$MHealthConcern)
+test_data$K8Q35<- as.numeric(as.character(test_data$K8Q35))
+train_data$K8Q35 <- as.numeric(as.character(train_data$K8Q35))
+
+train_data[factor_Variables] <- lapply(train_data[factor_Variables], as.factor)
+test_data[factor_Variables] <- lapply(test_data[factor_Variables], as.factor)
 ```
 We will utilize `train_data` in all models and then `test_data` to test the results of our model.
 
@@ -106,9 +176,6 @@ This variable takes into account the severity of the MHC. The max score for this
 Our predictor variables will allow us to predict our main outcome variable being the binary outcome for individuals currently experiencing depression or anxiety. This multi-level approach ensures a comprehensive understanding of how various predictors contribute to depression and anxiety in children and adolescents.
 
 ## Independent Variables
-```{r mutations eval = TRUE, include = TRUE}
-
-```
 There are various factors that can impacts ones mental health. Stress is a big factor that contributes to ones' mental health. Adverse childhood experiences, family dynamics, social environments, and neighborhood dynamics are all forms that stress can develop and contribute to mental health concerns. Indicators such as parental MHC, emotional support providers, adverse community and family events, and household experiences all contribute to perceived stress and MHC.
 
 Our variables of interest are listed below and their detailed descriptions can be found in the dictionary.
@@ -134,41 +201,6 @@ The selected variables are grouped into the following themes:
       - 3: Fair or Poor
       - 95: No mother/father reported in the household as a primary caregiver of the child
       - 99: Missing Values.
-```{r fig.height=4, fig.width=6, include=, mutation1 eval=TRUE}
-long_data <- currData %>%
-  pivot_longer(cols = c(MotherMH_22, FatherMH_22), 
-               names_to = "Parent", 
-               values_to = "Category") %>%
-  group_by(Parent, Category) %>%
-  summarise(count = n(), .groups = "drop") %>%
-  mutate(proportion = count / sum(count))
-
-# Plot proportions
-library(ggplot2)
-ggplot(long_data, aes(x = factor(Category), y = proportion, fill = Parent)) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(
-    x = "Category",
-    y = "Proportion",
-    title = "Figure 0.0 | Proportions of Mental Health Severity by Categories of Parent",
-    fill = "Parent"
-  ) +
-  scale_x_discrete(
-    labels = c(
-      "1" = "Excellent",
-      "2" = "Good",
-      "3" = "Fair or Poor",
-      "95" = "No Primary Caregiver",
-      "99" = "Missing Values"
-    )
-  ) +
-  theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
-        plot.subtitle = element_text(hjust = 0.5),
-        legend.position = "right") +
-  scale_fill_brewer(palette = "Dark2")
-
-```
 For our research purposes we have removed all missing values from our dataset and have performed the following mutation to group the variable into binary representation. Due to this filter further analysis must be performed to account of the absence of parents in the child's life.
 - Family Dynamic
   - "EventPart_22"
@@ -243,22 +275,307 @@ This variable did not filtered out missing values.
   - mentor_22
   
 ## Initial Models
-In alignment with our themes in the variables 4 different smaller models were formed to prove viability in proceeding with a neural network for the main model.
+In alignment with our themes in the variables, 3 different smaller models were formed to prove viability in proceeding with a neural network for the main model.
 
-**Model 1:** ``
+The first model takes into account neighborhood impacts, activities, and emotional support. This model was formed with the outcome variable being `MHealthConcern`, utilizing logistic regression to predict a binary response variable.
+
+**Model 1:** `MHealthConcern ~ HHCOUNT+PHYSACTIV+K8Q35+mentor_22+ShareIdeas_22+ScreenTime_22+ACE4ctCom_22+AftSchAct_22+NbhdSupp_22+NbhdSafe_22`
+
+The second model examines the impacts of family and childhood history.
+
+**Model 2:** `MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+SC_AGE_YEARS+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+EventPart_22+mentor_22+ShareIdeas_22+ FAMILY_R`
+ 
+The third model took into account adverse childhood events and social relationship with peers and/or friends.
+
+**Model 3:** `MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+bully_22+bullied_22+AftSchAct_22+EventPart_22+mentor_22+ShareIdeas_22`
+
+The final model is a combination of all the selected predictor variables.
+
+**Model 4:** `MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+PHYSACTIV+SC_AGE_YEARS+sex_22+MotherMH_22+FatherMH_22+ScreenTime_22+ACEct11_22+ACE4ctCom_22+Sc_RACE_R+bully_22+bullied_22+AftSchAct_22+EventPart_22+mentor_22+ShareIdeas_22+ACE6ctHH_22+NbhdSupp_22+NbhdSafe_22+FAMILY_R`
+
+The results from these methods are summarized below:
+```{r logisticReg, eval = TRUE, include = FALSE}
+# Logistic Regression
+
+# Model 1 LR
+logreg_1 <- glm(model1,data = train_data,family = binomial())
+#summary(logreg_1)
+
+# Model 2 LR
+logreg_2 <- glm(model2,data = train_data, family = binomial())
+#summary(logreg_2)
+
+# Model 3 LR
+logreg_3 <- glm(model3,data = train_data,family = binomial())
+#summary(logreg_3)
+
+# Model 4 LR
+logreg_4 <- glm(model4,data = train_data,family = binomial())
+#summary(logreg_4)
+
+# Final Model
+logreg_final <- glm(final_model, data = train_data,family = binomial())
+#summary(logreg_final)
+
+# Combine Results
+models <- list(logreg_1, logreg_2, logreg_3, logreg_4, logreg_final)
+model_names <- c("Model 1", "Model 2", "Model 3", "Model 4", "Final Model")
+all_metrics <- lapply(models, get_model_metrics, test_data = test_data, target_column = "MHealthConcern")
+combined_metrics <- do.call(rbind, all_metrics)
+combined_metrics$Model <- rep(model_names, each = nrow(combined_metrics) / length(model_names))
+logisticReg_metrics <- combined_metrics[, c("Model", "Metric", "Value")]
+```
 
 ## Model Selection
+```{r logisticResults, eval = TRUE, include = TRUE}
+# Table 1 | Table 0.0 --> Logistic Regression Results
+knitr::kable(logisticReg_metrics, col.names = c("Model", "Metric", "Value"), caption = "Table 1.1 | Logistic Regression Model Performance Metrics")
+```
 
-## Neural Network 1
-Neural network #1 with binary response of current mental health
-## Neural Network 2
-Neural network #2 with continuous response of score from past and current
+As you can see our final model performed pretty well compared to the others. Even though it performed slightly worse than model 4, there are less variables and sensitivity is slightly better.
+
+Upon inspection of the model the variables that had the best results in the performance of these models were selected to form the final model to be utilized in the neural network. The selected model was:
+
+**Final Model:** `MHealthConcern ~ SC_AGE_YEARS * sex_22 * SC_RACE_R + PHYSACTIV * AftSchAct_22 * ACEct11_22  + ACE4ctCom_22 + MotherMH_22 * FatherMH_22 + FAMILY_R + HHCOUNT + bullied_22 + ACE12 + ShareIdeas_22 + mentor_22`
+
+## Neural Network
+We will utilize the final model described above; however, the interactions were not included in the neural network. To ensure a model that converges and runs pretty easily we will perform a simple neutral network using the basic parameters.
+
+Instead of scaling the data, we utilized a method that expands our factored variables into specific binary columns. This will allow the model to work more efficiently and effectively.
+
+```{r neuralNet, eval = TRUE, include = FALSE}
+# Final Model
+n <- nrow(modelData)
+train_size <- floor(0.7 * n)
+train_indices <- sample(seq_len(n), train_size)
+
+train_data <- modelData[train_indices, ]
+test_data <- modelData[-train_indices, ]
+train_data <- train_data[, model4_filter]
+test_data <- test_data[, model4_filter]
+train_data[factor_Variables] <- lapply(train_data[factor_Variables], as.factor)
+test_data[factor_Variables] <- lapply(test_data[factor_Variables], as.factor)
+train_data <- dummy_cols(train_data, 
+                         remove_selected_columns = TRUE, 
+                         remove_first_dummy = TRUE)
+test_data <- dummy_cols(test_data, 
+                        remove_selected_columns = TRUE, 
+                        remove_first_dummy = TRUE)
+model_final_string <- paste(colnames(train_data), collapse = " + ")
+model_final_string <- gsub("MHealthConcern_1", "", model_final_string)
+model_final_string <- as.formula(paste("MHealthConcern_1 ~", model_final_string))
+
+nn_model_final <- neuralnet(model_final_string,
+                        data = train_data, 
+                        linear.output = FALSE,
+                        likelihood = TRUE,
+                        algorithm = "rprop+",
+                        err.fct = "ce")
+```
+
+## KMeans
+Further analysis was performed do to the limited significance of the neural network. KMeans was performed to sort our data into 2 groups work towards the groups being that we have created for our mental health concerns.
+
+```{r kMeans, eval = TRUE, include = FALSE}
+# K Means
+clusterFilter <- c("HHCOUNT", "BORNUSA", "ACE12",
+                  "PHYSACTIV", "SC_AGE_YEARS", "sex_22", "MotherMH_22", "FatherMH_22",
+                  "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", "SC_RACE_R", "bully_22",
+                  "bullied_22", "AftSchAct_22", "EventPart_22", "mentor_22", "ShareIdeas_22",
+                  "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R", "MHealthConcern")
+
+clusterData <- modelData
+clusterData <- clusterData[, clusterFilter]
+
+model <- kmeans(clusterData[, -1], centers = 2, iter.max = 100)
+
+clusterData$Cluster <- model$cluster - 1
+#clusterData$Cluster <- ifelse(clusterData$Cluster == 2, 1, 2)
+
+accuracy <- mean(clusterData$Cluster == clusterData$MHealthConcern)
+
+combined_data <- clusterData %>%
+  mutate(MHealthConcern = as.integer(as.character(MHealthConcern))) %>%
+  dplyr::select(MHealthConcern, Cluster) %>%
+  pivot_longer(cols = c(MHealthConcern, Cluster), names_to = "Type", values_to = "Value")
+
+fig5 <- ggplot(combined_data, aes(x = Value, fill = Type)) +
+  geom_histogram(position = "dodge", binwidth = 1, color = "black", alpha = 0.7) +
+  scale_x_continuous(breaks = seq(0, max(combined_data$Value), 1)) +
+  labs(title = "Figure 0.0 | Histogram of Clusters and Mental Health Concern Scores",
+       x = "Value",
+       y = "Count") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+       plot.subtitle = element_text(hjust = 0.5),
+       legend.position = "right") +
+  scale_fill_manual(labels = c("Mental Health Concern", "Cluster")) +
+  theme(legend.position = "top") +
+  scale_fill_brewer(palette = "Dark2")
+```
+
 
 # Results
 ## Model Used
-## Model Evaluation Metrics
+```{r neuralNet_results, eval = TRUE, include = FALSE}
+nn_results <- nn_stats(nn_model_final, test_data)
+rmse_nnFINAL <- nn_results$rmse
+metrics_nnFINAL <- calculate_metrics(nn_results$confusion_matrix)
+knitr::kable(metrics_nnFINAL, col.names = c("Metric", "Value"), caption = "Table 2.1 | Neural Network Final Model Performance Metrics | NN5_1")
+```
 ## Major Findings
 ## Tables and Figures
+```{r figuresCODE, eval = TRUE, include = FALSE}
+# Explore Mother/Father Mental Health History
+long_data <- currData %>%
+  pivot_longer(cols = c(MotherMH_22, FatherMH_22), 
+               names_to = "Parent", 
+               values_to = "Category") %>%
+  group_by(Parent, Category) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(proportion = count / sum(count))
+  
+# Plot proportions
+fig6 <- ggplot(long_data, aes(x = factor(Category), y = proportion, fill = Parent)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    x = "Category",
+    y = "Proportion",
+    title = "Figure 1.1 | Proportions of Mental Health Severity by Categories of Parent",
+    fill = "Parent"
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "1" = "Excellent",
+      "2" = "Good",
+      "3" = "Fair or Poor",
+      "95" = "No Primary Caregiver",
+      "99" = "Missing Values"
+    )
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "right") +
+  scale_fill_brewer(palette = "Dark2")
+
+# Explore Health Score by Age Group
+mhealth_by_age <- currData %>%
+  group_by(age3_22, MHealthScore) %>%
+  summarise(Count = n(), .groups = 'drop_last') %>%
+  group_by(age3_22) %>%
+  mutate(Proportion = Count / sum(Count) * 100)
+
+mhealth_by_age$age3_22 <- as.factor(mhealth_by_age$age3_22)
+mhealth_by_age$MHealthScore <- as.factor(mhealth_by_age$MHealthScore)
+
+fig1 <- ggplot(mhealth_by_age, aes(x = factor(age3_22), y = Proportion, fill = factor(MHealthScore))) +
+  geom_bar(stat = "identity") +
+  scale_fill_brewer(palette = "Blues", 
+                    name = "Mental Health\nSeverity Level",
+                    labels = c("0: No Issues", 
+                               "1: Low Severity", 
+                               "2: High Severity", 
+                               "3: Highest Severity")) +
+  labs(
+    title = "Figure 2.1 | Mental Health Severity Levels",
+    subtitle = "Proportion of Levels by Age Group",
+    x = "Age Group",
+    y = "Proportion"
+  ) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5),
+        legend.position = "right") +
+  scale_fill_brewer(palette = "Dark2")
+
+currData_age23 <- currData %>% filter(age3_22 == 2 | age3_22 == 3)
+
+# Explore Proportions of Health Score Filtered by Age group 2 & 3
+score_summary <- currData_age23 %>%
+  group_by(MHealthScore) %>%
+  summarise(
+    Count = n(),
+    Percentage = round(n() / nrow(currData_age23) * 100, 2)
+  )
+
+fig2 <- ggplot(score_summary, aes(x = factor(MHealthScore), y = Count, fill = factor(MHealthScore))) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_text(aes(label = paste0(Count, " (", Percentage, "%)")), 
+            vjust = -0.5, 
+            fontface = "bold") +
+  scale_fill_brewer(palette = "Blues") +
+  labs(
+    title = " Figure 3.1 | Distribution of Mental Health Scores",
+    subtitle = "Breakdown of Mental Health Indicators (Age Group 2 & 3)",
+    x = "Mental Health Score",
+    y = "Number of Individuals",
+    fill = "Score Level"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 0),
+    legend.position = "none"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+  scale_fill_brewer(palette = "Dark2")
+
+# Race Exploration by Age 2 and 3
+raceData$age3_22 <- as.numeric(as.character(raceData$age3_22))
+
+fig3_1 <- raceData %>% 
+  filter(age3_22 == 2 | age3_22 == 3) %>%
+  ggplot(aes(x = RACE, fill = RACE)) +  # Add fill aesthetic for color
+  geom_bar() +  # Add geom_bar to create the bar plot
+  labs(
+    title = "Figure 4.1 | Distribution of Racial Categories",
+    subtitle = "Age Group 2 & 3",
+    x = "Race",
+    y = "Count"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+  scale_fill_brewer(palette = "Dark2")
+
+fig3_2 <- raceData %>% 
+  filter(age3_22 == 2 | age3_22 == 3) %>%
+  ggplot(aes(x = RACE, fill = MHealthConcern)) +
+  geom_bar(position = "fill") +
+  labs(title = "Figure 4.2 | Mental Health Concerns by Race",
+       subtitle = "Age Group 2 & 3",
+       x = "Race",
+       y = "Proportion",
+       fill = "Mental Health Concern") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        plot.subtitle = element_text(hjust = 0.5),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
+  scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+  scale_fill_brewer(palette = "Dark2")
+```
+
+```{r figures, eval = TRUE, include = TRUE}
+# Figure 1 | Figure 2.1 --> Health Score by Age Group Filled by Score
+grid.arrange(fig1)
+# Figure 2 | Figure 3.1 --> Mental Health Score Proportion filtered by Age Group 2/3
+grid.arrange(fig2)
+# Figure 3 | Figure 4.0 --> Mental Health Score by Race
+grid.arrange(fig3_1, fig3_2, ncol = 2, nrow = 1)
+# Figure 5 | Figure 5.1 --> Kmeans results
+grid.arrange(fig5)
+# Figure 6 | Figure 1.1 --> Mother/Father Mental Health History
+grid.arrange(fig6)
+```
 
 # Conclusions
 

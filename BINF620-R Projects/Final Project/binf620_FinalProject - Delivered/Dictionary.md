@@ -7,10 +7,19 @@ editor_options:
 # NSCH 2022 Survey Data Dictionary
 
 ## Outcome Variables
-- K2Q33A
-- K2Q33B
-- K2Q32A
-- K2Q32B
+
+-   K2Q33A: Anxiety
+    -   1 = Yes
+    -   2 = No
+-   K2Q33B: Anxiety Currently
+    -   1 = Yes
+    -   2 = No
+-   K2Q32A: Depression
+    -   1 = Yes
+    -   2 = No
+-   K2Q32B: Depression Currently
+    -   1 = Yes
+    -   2 = No
 
 ## Predictor Variables
 

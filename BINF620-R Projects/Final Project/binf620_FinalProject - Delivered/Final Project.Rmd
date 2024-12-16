@@ -1,9 +1,12 @@
 ---
-title: "Title"
-subtitle: "BINF620"
+title: Relationships Between a Child's Social, Family, and Neighborhood & thier Mental
+  Health Concerns
 author: "A Manning Smith"
 date: "12/15/2024"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
+subtitle: BINF620
 ---
 
 ```{r setup, include=FALSE}
@@ -25,9 +28,85 @@ library(fastDummies)
 
 ```{r dataSetup, include=FALSE}
 # Load Filtered Data
-load("filtered_NSCH.RData")
-currData <- filteredData
+load("currData_NSCH.RData")
 load("modelData_NSCH.RData")
+```
+
+```{r functions, include=FALSE}
+## Functions ##
+getAccuracy_glm <- function(modelResults, type = "Binary") {
+  
+  accuracy = 0
+  
+  if (type == "Binary") {
+    pred_prob <- predict(modelResults, test_data, type = "response")
+    pred_binary <- ifelse(pred_prob > 0.5, 1, 0)
+    accuracy <- mean(pred_binary == test_data$MHealthConcern)
+  }
+  else {
+    pred <- predict(modelResults, test_data)
+    pred_rounded <- round(pred)
+    accuracy <- mean(pred_rounded == test_data$MHealthScore)
+  }
+  
+  return(accuracy)
+}
+
+calculate_metrics <- function(conf_matrix) {
+  
+  if (nrow(conf_matrix) < 2 || ncol(conf_matrix) < 2) {
+    conf_matrix <- matrix(c(conf_matrix, 0, 0), nrow = 2, ncol = 2, byrow = TRUE)
+    rownames(conf_matrix) <- c("0", "1")
+    colnames(conf_matrix) <- c("0", "1")
+  }
+  
+  TP <- conf_matrix["1", "1"]
+  TN <- conf_matrix["0", "0"]
+  FP <- conf_matrix["1", "0"]
+  FN <- conf_matrix["0", "1"]
+  
+  accuracy <- (TP + TN) / sum(conf_matrix)
+  sensitivity <- TP / (TP + FN)
+  specificity <- TN / (TN + FP)
+  FPR <- FP / (FP + TN)
+  
+  metrics <- list(
+    Accuracy = accuracy,
+    Sensitivity = sensitivity,
+    Specificity = specificity,
+    FPR = FPR)
+  
+  # Create a data frame for metrics
+  metrics_df <- data.frame(
+    Metric = c("Accuracy", "Sensitivity", "Specificity", "False Positive Rate (FPR)"),
+    Value = c(metrics$Accuracy, metrics$Sensitivity, metrics$Specificity, metrics$FPR))
+  
+  return(metrics_df)
+}
+
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+
+nn_stats <- function(nn, test_data) {
+  pred <- as.numeric(predict(nn, test_data))
+  rmse <- rmse(test_data$MHealthConcern, pred)
+  pred_class <- factor(ifelse(pred > 0.5, 1, 0), levels = c(0, 1))
+  test_data$MHealthConcern <- factor(test_data$MHealthConcern, levels = c(0, 1))
+  conf <- table(Predicted = pred_class, Actual = test_data$MHealthConcern)
+  
+  return(list(rmse = rmse, confusion_matrix = conf))
+}
+
+get_model_metrics <- function(model, test_data, target_column) {
+  predictions <- predict(model, newdata = test_data, type = "response")
+  predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+  conf_matrix <- table(Predicted = predicted_classes, Actual = test_data$MHealthConcern)
+  
+  # Calculate metrics using the previously defined function
+  metrics_df <- calculate_metrics(conf_matrix)
+  return(metrics_df)
+}
 ```
 
 ```{r defineModels, include=FALSE}
@@ -82,19 +161,21 @@ factor_Variables <- c("MHealthConcern", "BORNUSA", "K8Q35", "ACE12",
                       "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
 ```
 
-# Title
-
 # Abstract
+This study utilizes the 2022 National Survey of Children's Health to examine the complex interactions between social, family, and personal factors influencing mental health concerns (MHC) among youth aged 6-17. Utilizing a comprehensive data set, the research employed logistic regression models to investigate potential predictors of mental health outcomes.
+
+The analysis revealed promising results, with model accuracies exceeding 80%, peaking at 84.6%. Key predictive factors emerged, including gender, physical activity levels, after-school participation, experiences of bullying, and instances of discrimination based on gender identity or sexual orientation. While logistic regression models demonstrated potential, the attempted neural network approach did not yield conclusive results due to time and methodological constraints. This should be an area of focus is further research.
+
+This research contributes to the growing understanding of youth mental health by highlighting the multifaceted nature of mental health concerns and identifying critical areas for further investigation. The findings highlight the importance of comprehensive approaches to understanding and supporting adolescent mental health in the post-pandemic landscape.
+
+There were still multiple variable interactions that showed promising results. Sex was also a significant factor. Another factor was physical activity and the number of after school activities. The other two obvious interactions were being bullied and whether one was being picked on for gender identity or sexuality issues. These factor should be explore further. The aim of the neural network was to combine these factors into one analysis, but not enough success was found.
+
+Though this research may not have been a publishing success, may lessons were learned and future research viability was formed on the basis of the predictors selected.
 
 # Background
 With a Global Pandemic behind us and mental health concerns (MHC) on the rise, researchers have intensified their focus on understanding the various social and family impacts experienced by children and adolescents during and after this unprecedented period. Based on data from 2021-2022, reported by the CDC 10% of children ages 3-17 had current, diagnosed anxiety. Moreover, 4% of children ages 3-17 had current, diagnosed depression. The rates grow when you examine teen groups specifically, 21% of teens reported symptoms of anxiety in the past two weeks and 17% reported symptoms of depression in the past two weeks.
 
-~~~ Figure 1
-
-This paper aims to explore the various impacts of one's childhood in shaping the mental health outcomes of children and adolescents. Using data from the 2022 National Survey of Children’s Health (NSCH) and the application of different statistical methods and neural networks to explore interactions between our selected variables, to identify key predictors that could positively impact the mental health of an individual.
-
-
-
+This paper aims to explore the various impacts of one's childhood in shaping the mental health outcomes of children and adolescents. Using data from the 2022 National Survey of Children Health (NSCH) and the application of different statistical methods and neural networks to explore interactions between our selected variables, to identify key predictors that could positively impact the mental health of an individual.
 
 # Study Design
 Building upon this foundation, we are offering a robust and data-driven perspective on MHC among youth, outlining the statistical methodologies used to investigate these relationships.
@@ -118,20 +199,17 @@ There are a various number of filters filtering out missing values as described 
 
 ## Split and Train Data
 For the process of splitting the data into a test and training set we will utilize a 80/20 split. With a large dataset it is appropriate to utilize this split allowing sufficient data to train then test our methods.
-```{r split, eval=TRUE, message=FALSE, warning=FALSE, include=}
+```{r split, eval=TRUE, message=FALSE, warning=FALSE, include=TRUE}
 n <- nrow(modelData)
 train_size <- floor(0.7 * n)
 train_indices <- sample(seq_len(n), train_size)
 
-train_data <- currData_age23[train_indices, ]
-test_data <- currData_age23[-train_indices, ]
+train_data <- modelData[train_indices, ]
+test_data <- modelData[-train_indices, ]
 test_data$MHealthConcern <- factor(test_data$MHealthConcern)
 train_data$MHealthConcern <- factor(train_data$MHealthConcern)
 test_data$K8Q35<- as.numeric(as.character(test_data$K8Q35))
 train_data$K8Q35 <- as.numeric(as.character(train_data$K8Q35))
-
-train_data[factor_Variables] <- lapply(train_data[factor_Variables], as.factor)
-test_data[factor_Variables] <- lapply(test_data[factor_Variables], as.factor)
 ```
 We will utilize `train_data` in all models and then `test_data` to test the results of our model.
 
@@ -294,23 +372,24 @@ The final model is a combination of all the selected predictor variables.
 **Model 4:** `MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+PHYSACTIV+SC_AGE_YEARS+sex_22+MotherMH_22+FatherMH_22+ScreenTime_22+ACEct11_22+ACE4ctCom_22+Sc_RACE_R+bully_22+bullied_22+AftSchAct_22+EventPart_22+mentor_22+ShareIdeas_22+ACE6ctHH_22+NbhdSupp_22+NbhdSafe_22+FAMILY_R`
 
 The results from these methods are summarized below:
-```{r logisticReg, eval = TRUE, include = FALSE}
+```{r logisticReg, include=FALSE}
+set.seed(18)
 # Logistic Regression
 
 # Model 1 LR
-logreg_1 <- glm(model1,data = train_data,family = binomial())
+logreg_1 <- glm(model1, data = train_data, family = binomial())
 #summary(logreg_1)
 
 # Model 2 LR
-logreg_2 <- glm(model2,data = train_data, family = binomial())
+logreg_2 <- glm(model2, data = train_data, family = binomial())
 #summary(logreg_2)
 
 # Model 3 LR
-logreg_3 <- glm(model3,data = train_data,family = binomial())
+logreg_3 <- glm(model3, data = train_data,family = binomial())
 #summary(logreg_3)
 
 # Model 4 LR
-logreg_4 <- glm(model4,data = train_data,family = binomial())
+logreg_4 <- glm(model4, data = train_data,family = binomial())
 #summary(logreg_4)
 
 # Final Model
@@ -343,7 +422,7 @@ We will utilize the final model described above; however, the interactions were 
 
 Instead of scaling the data, we utilized a method that expands our factored variables into specific binary columns. This will allow the model to work more efficiently and effectively.
 
-```{r neuralNet, eval = TRUE, include = FALSE}
+```{r neuralNet, eval = FALSE, include = TRUE}
 # Final Model
 n <- nrow(modelData)
 train_size <- floor(0.7 * n)
@@ -374,9 +453,10 @@ nn_model_final <- neuralnet(model_final_string,
 ```
 
 ## KMeans
-Further analysis was performed do to the limited significance of the neural network. KMeans was performed to sort our data into 2 groups work towards the groups being that we have created for our mental health concerns.
+Further analysis was performed due to the limited significance of the neural network. KMeans was performed to sort our data into 2 groups work towards the groups being that we have created for our mental health concerns.
 
 ```{r kMeans, eval = TRUE, include = FALSE}
+set.seed(43)
 # K Means
 clusterFilter <- c("HHCOUNT", "BORNUSA", "ACE12",
                   "PHYSACTIV", "SC_AGE_YEARS", "sex_22", "MotherMH_22", "FatherMH_22",
@@ -402,7 +482,7 @@ combined_data <- clusterData %>%
 fig5 <- ggplot(combined_data, aes(x = Value, fill = Type)) +
   geom_histogram(position = "dodge", binwidth = 1, color = "black", alpha = 0.7) +
   scale_x_continuous(breaks = seq(0, max(combined_data$Value), 1)) +
-  labs(title = "Figure 0.0 | Histogram of Clusters and Mental Health Concern Scores",
+  labs(title = "Figure 5.1 | Histogram of Clusters and Mental Health Concern Scores",
        x = "Value",
        y = "Count") +
   theme_minimal() +
@@ -414,18 +494,39 @@ fig5 <- ggplot(combined_data, aes(x = Value, fill = Type)) +
   scale_fill_brewer(palette = "Dark2")
 ```
 
+Semi-promising results can be seen from the KMeans clustering. An accuracy of about 83% was found in predicting the group to which there was or was not a mental health concern.
 
 # Results
 ## Model Used
-```{r neuralNet_results, eval = TRUE, include = FALSE}
+```{r neuralNet_results, eval = FALSE, include = FALSE}
 nn_results <- nn_stats(nn_model_final, test_data)
 rmse_nnFINAL <- nn_results$rmse
 metrics_nnFINAL <- calculate_metrics(nn_results$confusion_matrix)
 knitr::kable(metrics_nnFINAL, col.names = c("Metric", "Value"), caption = "Table 2.1 | Neural Network Final Model Performance Metrics | NN5_1")
 ```
 ## Major Findings
+From the logistic regression, there were promising results from the 5 different models utilized. All the model had accuracy's greater than 80% with the highest being 85%.
+
+Our selected `final_model` performed the best with an accuracy of 84.6%, being that is utilized fewer variables, but did contain some interactions between variables. There is still not definite evidence to suggest the predictability of our model on the outcomes of mental health concerns among children.
+
+In terms of the neural network. There seems to be potential in this method, but do to time and study constrains this analysis was not successful at performing any predictability. Code has been provided that can be further adapted for future success, but at its current state there was no success in the use of the neural network.
+
 ## Tables and Figures
 ```{r figuresCODE, eval = TRUE, include = FALSE}
+# Race Data
+raceFilter <- c("SC_RACE_R", "age3_22", "MHealthConcern", "MHealthScore")
+raceData <- currData[, raceFilter]
+
+# Label Race Variable
+raceData$RACE <- factor(raceData$SC_RACE_R,
+                        levels = c(1, 2, 3, 4, 5, 7),
+                        labels = c("White alone",
+                                   "Black or African American alone", 
+                                   "American Indian or Alaska Native alone", 
+                                   "Asian alone", 
+                                   "Native Hawaiian and Other Pacific Islander alone", 
+                                   "Two or More Races"))
+
 # Explore Mother/Father Mental Health History
 long_data <- currData %>%
   pivot_longer(cols = c(MotherMH_22, FatherMH_22), 
@@ -578,5 +679,11 @@ grid.arrange(fig6)
 ```
 
 # Conclusions
+Overall, this research aimed to explore different social, family, and neighborhood factors that can influence the current status of one's mental health, as expressed by either depression or anxiety. Various models were tested utilizing logistic regressions. These results signified feasibility for further analysis; however, due to research and time constraints further analyses were not successful.
+
+The use of a neural network was attempted, but no successful network converged for proved significant evidence. Further research is needed on this front to suggest the predictability of our variables in predicting mental health concerns.
+
+Thought there were not ground breaking findings, there were some interactions between selected variables that warren further exploration. In the models, sex was also a significant factor. Another factor was physical activity and the number of after school activities. The other two obvious interactions were being bullied and whether one was being picked on for gender identity or sexuality issues. These factor should be explore further. The aim of the neural network was to combine these factors into one analysis, but not enough success was found.
 
 # References
+- https://www.cdc.gov/children-mental-health/data-research/index.html

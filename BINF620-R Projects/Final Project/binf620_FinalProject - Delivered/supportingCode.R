@@ -132,11 +132,11 @@ selectedColumns <- c(
   #save(filteredData, file = "Final Project/filtered_NSCH.RData")
 
 # Load Filtered Data
-load("Final Project/filtered_NSCH.RData")
+load("Final Project/binf620_FinalProject - Delivered/filtered_NSCH.RData")
 currData <- filteredData
 
 # Load Model Data
-  #load("Final Project/modelData_NSCH.RData")
+load("Final Project/binf620_FinalProject - Delivered/modelData_NSCH.RData")
 
 ## Data Imputations / Mutations ##
 
@@ -206,6 +206,8 @@ modelFilter <- c("SC_AGE_YEARS", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12",
                  "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R",
                  "K2Q32B", "K2Q33B", "K2Q32A", "K2Q33A", "SC_AGE_YEARS", "MHealthConcern")
 
+
+save(currData, file = "currData_NSCH.RData")
 modelData <- currData[, modelFilter]
 
 # Mutation 1
@@ -262,7 +264,7 @@ modelData <- modelData %>%
   filter(bullied_22 < 10)
 
 # Mutation 11
-modelData$K8Q35 <- modelData$K8Q35 %% 2
+#modelData$K8Q35 <- modelData$K8Q35 %% 2
 
 # Mutation 12
 modelData <- modelData %>%
@@ -427,7 +429,7 @@ fig3_2 <- raceData %>%
 # Neighborhood / Activities / Support Model | Model1
 model1 <- "MHealthConcern ~ HHCOUNT+PHYSACTIV+K8Q35+mentor_22+ShareIdeas_22+
           ScreenTime_22+ACE4ctCom_22+AftSchAct_22+NbhdSupp_22+NbhdSafe_22"
-model1_filter <- c("MHealthConcern", "HHCOUNT", "PHYSACTIV", "K8Q35", "mentor_22", "ShareIdeas_22",
+model1_filter <- c("MHealthConcern", "HHCOUNT", "PHYSACTIV", "mentor_22", "ShareIdeas_22",
                    "ScreenTime_22", "ACE4ctCom_22", "AftSchAct_22", "NbhdSupp_22", "NbhdSafe_22")
 
 # Family / History Model | Model2
@@ -492,46 +494,24 @@ test_data[factor_Variables] <- lapply(test_data[factor_Variables], as.factor)
 # Logistic Regression
 
 # Model 1 LR
-logreg_1 <- glm(model1,
-  data = train_data, 
-  family = binomial()
-)
-summary(logreg_1)
-logreg_1_accuracy <- getAccuracy_glm(logreg_1)
+logreg_1 <- glm(model1,data = train_data,family = binomial())
+#summary(logreg_1)
 
 # Model 2 LR
-logreg_2 <- glm(model2,
-                data = train_data, 
-                family = binomial()
-)
-summary(logreg_2)
-logreg_2_accuracy <- getAccuracy_glm(logreg_2)
+logreg_2 <- glm(model2,data = train_data, family = binomial())
+#summary(logreg_2)
 
 # Model 3 LR
-logreg_3 <- glm(model3,
-                data = train_data, 
-                family = binomial()
-)
-summary(logreg_3)
-logreg_3_accuracy <- getAccuracy_glm(logreg_3)
+logreg_3 <- glm(model3,data = train_data,family = binomial())
+#summary(logreg_3)
 
 # Model 4 LR
-logreg_4 <- glm(model4,
-                data = train_data, 
-                family = binomial()
-)
-summary(logreg_4)
-logreg_4_accuracy <- getAccuracy_glm(logreg_4)
+logreg_4 <- glm(model4,data = train_data,family = binomial())
+#summary(logreg_4)
 
 # Final Model
-logreg_final <- glm(final_model,
-                data = train_data, 
-                family = binomial()
-)
-summary(logreg_final)
-logreg_final_accuracy <- getAccuracy_glm(logreg_final)
-
-plot(logreg_final)
+logreg_final <- glm(final_model, data = train_data,family = binomial())
+#summary(logreg_final)
 
 # Combine Results
 models <- list(logreg_1, logreg_2, logreg_3, logreg_4, logreg_final)
@@ -580,6 +560,31 @@ fig5 <- ggplot(combined_data, aes(x = Value, fill = Type)) +
 
 
 # Neural Network
+
+# Model 1 NN
+n <- nrow(modelData)
+train_size <- floor(0.7 * n)
+train_indices <- sample(seq_len(n), train_size)
+
+train_data <- modelData[train_indices, ]
+test_data <- modelData[-train_indices, ]
+
+scaled_data <- train_data[, model1_filter] %>%
+  mutate(across(where(is.numeric) & !matches("MHealthConcern"), scale)) %>%
+  mutate(MHealthConcern = train_data$MHealthConcern) %>%
+  mutate(MHealthConcern = as.numeric(as.factor(MHealthConcern)) - 1)
+
+nn_model1 <- neuralnet(model1,
+                            data = scaled_data, 
+                            linear.output = FALSE,
+                            likelihood = TRUE,
+                            algorithm = "rprop+",
+                            stepmax = 1e+05,
+                            err.fct = "ce")
+nn_results <- nn_stats(nn_1_final, test_data)
+rmse_nnFINAL <- nn_results$rmse
+metrics_nn1 <- calculate_metrics(nn_results$confusion_matrix)
+knitr::kable(metrics_nn1, col.names = c("Metric", "Value"), caption = "Table 0.0 | Neural Network Model 1 Performance Metrics | NN1_1")
 
 # Final Model
 n <- nrow(modelData)

@@ -114,7 +114,7 @@ nn_stats <- function(nn, test_data) {
 ## Load Data ##
 
 # Load Original Dataset
-  #rawData <- read.csv("Final Project/NSCH_2022e_Topical_CSV_CAHMI_DRCv2.csv")
+rawData <- read.csv("Final Project/NSCH_2022e_Topical_CSV_CAHMI_DRCv2.csv")
 
 # Filter for Selected Columns
 selectedColumns <- c(
@@ -136,13 +136,12 @@ selectedColumns <- c(
 filteredData <- rawData[, selectedColumns]
 
 # Save Filtered Data
-  #save(filteredData, file = "Final Project/filtered_NSCH.RData")
+save(filteredData, file = "Final Project/filtered_NSCH.RData")
 
 # Load Filtered Data
 load("Final Project/filtered_NSCH.RData")
+currData <- filteredData
 
-# Load Model Data
-  #load("Final Project/modelData_NSCH.RData")
 
 ## Data Imputations / Mutations ##
 
@@ -201,91 +200,6 @@ raceData$RACE <- factor(raceData$SC_RACE_R,
                                    "Asian alone", 
                                    "Native Hawaiian and Other Pacific Islander alone", 
                                    "Two or More Races"))
-
-
-## Model Data Mutations ##
-modelFilter <- c("SC_AGE_YEARS", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", 
-                 "PHYSACTIV", "age3_22", "sex_22", "MotherMH_22", 
-                 "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
-                 "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
-                 "EventPart_22", "mentor_22", "ShareIdeas_22", 
-                 "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R",
-                 "K2Q32B", "K2Q33B", "K2Q32A", "K2Q33A")
-modelData <- currData[, modelFilter]
-
-# Mutation 1
-modelData$MotherMH_22 <- ifelse(modelData$MotherMH_22 == 3, 1, 
-                                ifelse(modelData$MotherMH_22 %in% c(1, 2), 0, 99))
-modelData$FatherMH_22 <- ifelse(modelData$FatherMH_22 == 3, 1, 
-                                ifelse(modelData$FatherMH_22 %in% c(1, 2), 0, 99))
-modelData <- modelData %>%
-  filter(MotherMH_22 < 10 & FatherMH_22 < 10)
-
-# Mutation 2
-modelData$EventPart_22 <- ifelse(modelData$EventPart_22 %in% c(1, 2), 0, 
-                                 ifelse(modelData$EventPart_22 %in% c(3, 4), 1, 99))
-modelData <- modelData %>%
-  filter(EventPart_22 < 10)
-
-# Mutation 3
-modelData$NbhdSafe_22 <- ifelse(modelData$NbhdSafe_22 %in% c(1, 2), 0, 
-                                ifelse(modelData$NbhdSafe_22 == 3, 1, 99))
-modelData <- modelData %>%
-  filter(NbhdSafe_22 < 10)
-
-# Mutation 4
-modelData$PHYSACTIV <- ifelse(modelData$PHYSACTIV %in% c(1,0), 0, 
-                              ifelse(modelData$PHYSACTIV %in% c(3,4), 1,NA))
-
-# Mutation 5
-modelData$ACE4ctCom_22 <- ifelse(modelData$ACE4ctCom_22 == 1, 0, 
-                                 ifelse(modelData$ACE4ctCom_22 == 2, 1, NA))
-
-modelData$AftSchAct_22 <- ifelse(modelData$AftSchAct_22 == 2, 0, 
-                                 ifelse(modelData$AftSchAct_22 == 1, 1, 99))
-modelData <- modelData %>%
-  filter(AftSchAct_22 < 10)
-
-# Mutation 6
-modelData$ACE12 <- modelData$ACE12 %% 2
-
-# Mutation 7
-modelData$AftSchAct_22 <- ifelse(modelData$AftSchAct_22 == 2, 0, 
-                                 ifelse(modelData$AftSchAct_22 == 1, 1, 99))
-# Mutation 8
-modelData <- modelData %>%
-  filter(AftSchAct_22 < 10)
-
-# Mutation 9
-modelData <- modelData %>%
-  filter(ScreenTime_22 < 10)
-
-# Mutation 10
-modelData <- modelData %>%
-  filter(bully_22 < 10)
-modelData <- modelData %>%
-  filter(bullied_22 < 10)
-
-# Mutation 11
-modelData$K8Q35 <- modelData$K8Q35 %% 2
-
-# Mutation 12
-modelData <- modelData %>%
-  filter(NbhdSupp_22 < 10)
-
-# Mutation 13
-modelData$ShareIdeas_22 <- ifelse(modelData$ShareIdeas_22 %in% c(1,2), 0, 
-                                  ifelse(modelData$ShareIdeas_22 == 3, 0, 99))
-modelData <- modelData %>%
-  filter(ShareIdeas_22 < 10)
-
-# Mutation 14
-modelData <- modelData %>%
-  filter(mentor_22 < 10)
-
-modelData$mentor_22 <- modelData$mentor_22 %% 2
-
-#save(modelData, file = "modelData_NSCH.RData")
 
 
 ## Data Exploration ##
@@ -398,7 +312,7 @@ fig3_2 <- raceData %>%
 
 # Neighborhood / Activities / Support Model | Model1
 model1 <- "MHealthConcern ~ HHCOUNT+PHYSACTIV+K8Q35+mentor_22+ShareIdeas_22+
-          ScreenTime_22+ACE4ctCom_22+AftSchAct_22+NbhdSupp_22+NbhdSafe_22"
+          ScreenTime_22+ACE4ctCom_22+ AftSchAct_22+NbhdSupp_22+NbhdSafe_22"
 model12 <- "MHealthScore ~ HHCOUNT+PHYSACTIV+K8Q35+mentor_22+ShareIdeas_22+
           ScreenTime_22+ACE4ctCom_22+ AftSchAct_22+NbhdSupp_22+NbhdSafe_22"
 model1_filter <- c("MHealthConcern", "HHCOUNT", "PHYSACTIV", "K8Q35", "mentor_22", "ShareIdeas_22",
@@ -427,27 +341,28 @@ model3_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "AC
                      "EventPart_22", "mentor_22", "ShareIdeas_22")
 
 # Combined Model | Model4
-model4 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+PHYSACTIV+
-          SC_AGE_YEARS+sex_22+MotherMH_22+FatherMH_22+ScreenTime_22+
+model4 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+K10Q40_R+PHYSACTIV+
+          age3_22+sex_22+MotherMH_22+FatherMH_22+ScreenTime_22+
           ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
-          EventPart_22+mentor_22+ShareIdeas_22+ACE6ctHH_22+
-          NbhdSupp_22+NbhdSafe_22+FAMILY_R"
-model42 <- "MHealthScore ~ HHCOUNT+BORNUSA+K8Q35+ACE12+PHYSACTIV+
-          SC_AGE_YEARS+sex_22+MotherMH_22+FatherMH_22+ScreenTime_22+
-          ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
-          EventPart_22+mentor_22+ShareIdeas_22+ACE6ctHH_22+
+          EventPart_22+mentor_22+ShareIdeas_22+ACE2more11_22+ACE6ctHH_22+
           NbhdSupp_22+NbhdSafe_22"
-model4_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", 
-                   "PHYSACTIV", "SC_AGE_YEARS", "sex_22", "MotherMH_22", 
+model42 <- "MHealthScore ~ HHCOUNT+BORNUSA+K8Q35+ACE12+ACE11+K10Q40_R+PHYSACTIV+
+          age3_22+sex_22+MotherMH_22+FatherMH_22+ScreenTime_22+
+          ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
+          EventPart_22+mentor_22+ShareIdeas_22+ACE2more11_22+ACE6ctHH_22+
+          NbhdSupp_22+NbhdSafe_22"
+model4_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11", 
+                   "K10Q40_R", "PHYSACTIV", "age3_22", "sex_22", "MotherMH_22", 
                    "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
                    "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
-                   "EventPart_22", "mentor_22", "ShareIdeas_22", 
-                   "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
+                   "EventPart_22", "mentor_22", "ShareIdeas_22", "ACE2more11_22", 
+                   "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22")
+
 
 ## Data Setup ##
 
 # Split Data
-n <- nrow(modelData)
+n <- nrow(currData_age23)
 train_size <- floor(0.7 * n)
 train_indices <- sample(seq_len(n), train_size)
 
@@ -539,13 +454,13 @@ fig4 <- ggplot(accuracy_df, aes(x = Model, y = Accuracy, fill = ModelGroup)) +
 
 # K Means
 
-clusterFilter <- c("HHCOUNT", "BORNUSA", "K8Q35", "ACE12",
-                  "PHYSACTIV", "SC_AGE_YEARS", "sex_22", "MotherMH_22", "FatherMH_22",
+clusterFilter <- c("HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11", "K10Q40_R",
+                  "PHYSACTIV", "age3_22", "sex_22", "MotherMH_22", "FatherMH_22",
                   "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", "SC_RACE_R", "bully_22",
                   "bullied_22", "AftSchAct_22", "EventPart_22", "mentor_22", "ShareIdeas_22",
-                  "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "MHealthConcern", "FAMILY_R")
+                  "ACE2more11_22", "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "MHealthConcern")
 
-clusterData <- modelData
+clusterData <- currData %>% filter(age3_22 == 2 | age3_22 == 3)
 clusterData <- clusterData[, clusterFilter]
 
 model <- kmeans(clusterData[, -1], centers = 2, iter.max = 100)
@@ -631,6 +546,7 @@ nn_model41 <- neuralnet(model4_string,
                         data = train_data, 
                         linear.output = FALSE,
                         likelihood = TRUE,
+                        #hidden = c(2, 1),
                         algorithm = "rprop+",
                         err.fct = "ce")
 nn_results <- nn_stats(nn_model41, test_data)

@@ -151,12 +151,22 @@ currData <- currData %>%
 colnames(currData)
 
 # Define analysis variables for easier reference
-analysis_vars <- c("MHealthConcern", "AftSchAct_22", "PHYSACTIV", "EventPart_22", 
-                   "mentor_22", "ShareIdeas_22", "sex_22", "SC_AGE_YEARS", 
-                   "SC_RACE_R", "HHCOUNT", "MotherMH_22", "FatherMH_22", 
-                   "bullied_22", "ACE12", "ACEct11_22", "ACE4ctCom_22", 
-                   "FAMILY_R", "NbhdSupp_22", "NbhdSafe_22")
+analysis_vars <- c("SC_AGE_YEARS", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", 
+                   "PHYSACTIV", "age3_22", "sex_22", "MotherMH_22", 
+                   "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
+                   "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
+                   "EventPart_22", "mentor_22", "ShareIdeas_22", 
+                   "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R",
+                   "K2Q32B", "K2Q33B", "K2Q32A", "K2Q33A", "SC_AGE_YEARS", "MHealthConcern")
 
+analysis_vars <- 
+  c("SC_AGE_YEARS", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", 
+    "PHYSACTIV", "age3_22", "sex_22", "MotherMH_22", 
+    "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
+    "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
+    "EventPart_22", "mentor_22", "ShareIdeas_22", 
+    "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R",
+    "K2Q32B", "K2Q33B", "K2Q32A", "K2Q33A", "SC_AGE_YEARS", "MHealthConcern")
 
 analysis_data <- currData %>%
   dplyr::select(all_of(analysis_vars)) %>%
@@ -168,7 +178,7 @@ analysis_data <- currData %>%
 if(FALSE){
   imputation_model <- mice(currData %>% dplyr::select(all_of(analysis_vars)), m=5, maxit=50, method='pmm')
   imputed_data <- complete(imputation_model, 1)
-
+  
   # Save imputed data
   save(imputed_data, file = "imputed_NSCH.RData")
 }

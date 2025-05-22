@@ -1,5 +1,5 @@
 ---
-title: Relationships Between a Child's Social, Family, and Neighborhood & thier Mental
+title: Relationships Between a Child's Social, Family, and Neighborhood & their Mental
   Health Concerns
 author: "A Manning Smith"
 date: "12/15/2024"

@@ -14,6 +14,9 @@ library(matrixStats)
 # Question 1
 
 ```{r Q1, echo=TRUE}
+# Main Header ####
+## Sub Header ----
+### Sub-sub Header ===
 ```
 
 ### 1a)

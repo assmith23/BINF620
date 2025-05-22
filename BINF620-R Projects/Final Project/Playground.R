@@ -61,7 +61,7 @@ columns_to_keep <- c(
   "ACE1more4Com_22", "EmSupport_22", "NbhdSupp_22", "NbhdSafe_22", 
   "SchlSafe_22", "SideWlks_22", "park_22", "RecCentr_22", "library_22", 
   "NbhdAmenities_22", "litter_22", "housing_22", "vandal_22", 
-  "NbhdDetract_22"
+  "NbhdDetract_22", "PHYSACTIV"
 )
 
 # Create a new data frame with only the specified columns

@@ -1,0 +1,265 @@
+---
+title: Title
+author: "A Manning Smith"
+date: "May 23, 2025"
+output:
+  github_document:
+    includes:
+      in_header: header.md
+      before_body: doc_prefix.md
+      after_body: doc_suffix.md
+  bookdown::html_document2:
+    number_sections: false
+    toc: true
+    toc_float: true
+  html_document:
+    toc: true
+    df_print: paged
+  pdf_document: default
+subtitle: "BINF620 - Final Report"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load Libraries
+library(knitr)
+library(RColorBrewer)
+library(ggplot2)
+library(readxl)
+library(tibble)
+library(dplyr)
+library(tidyverse)
+library(writexl)
+library(png)
+library(tinytex)
+library(bookdown)
+library(ROCR)
+library(randomForest)
+library(gridExtra)
+library(caret)
+library(mlbench)
+library(kableExtra)
+library(neuralnet)
+library(naivebayes)
+library(tidyr)
+library(fastDummies)
+```
+
+```{r dataSetup, include=FALSE}
+setwd("~/Documents/BINF620/BINF620-R Projects/Final Project/binf620_FinalProject - Delivered")
+
+# Load Filtered Data
+load("currData_NSCH.RData")
+load("modelData_NSCH.RData")
+```
+
+```{r functions, include=FALSE}
+## Functions ##
+getAccuracy_glm <- function(modelResults, type = "Binary") {
+  
+  accuracy = 0
+  
+  if (type == "Binary") {
+    pred_prob <- predict(modelResults, test_data, type = "response")
+    pred_binary <- ifelse(pred_prob > 0.5, 1, 0)
+    accuracy <- mean(pred_binary == test_data$MHealthConcern)
+  }
+  else {
+    pred <- predict(modelResults, test_data)
+    pred_rounded <- round(pred)
+    accuracy <- mean(pred_rounded == test_data$MHealthScore)
+  }
+  
+  return(accuracy)
+}
+
+calculate_metrics <- function(conf_matrix) {
+  
+  if (nrow(conf_matrix) < 2 || ncol(conf_matrix) < 2) {
+    conf_matrix <- matrix(c(conf_matrix, 0, 0), nrow = 2, ncol = 2, byrow = TRUE)
+    rownames(conf_matrix) <- c("0", "1")
+    colnames(conf_matrix) <- c("0", "1")
+  }
+  
+  TP <- conf_matrix["1", "1"]
+  TN <- conf_matrix["0", "0"]
+  FP <- conf_matrix["1", "0"]
+  FN <- conf_matrix["0", "1"]
+  
+  accuracy <- (TP + TN) / sum(conf_matrix)
+  sensitivity <- TP / (TP + FN)
+  specificity <- TN / (TN + FP)
+  FPR <- FP / (FP + TN)
+  
+  metrics <- list(
+    Accuracy = accuracy,
+    Sensitivity = sensitivity,
+    Specificity = specificity,
+    FPR = FPR)
+  
+  # Create a data frame for metrics
+  metrics_df <- data.frame(
+    Metric = c("Accuracy", "Sensitivity", "Specificity", "False Positive Rate (FPR)"),
+    Value = c(metrics$Accuracy, metrics$Sensitivity, metrics$Specificity, metrics$FPR))
+  
+  return(metrics_df)
+}
+
+rmse <- function(actual, predicted) {
+  sqrt(mean((actual - predicted)^2))
+}
+
+nn_stats <- function(nn, test_data) {
+  pred <- as.numeric(predict(nn, test_data))
+  rmse <- rmse(test_data$MHealthConcern, pred)
+  pred_class <- factor(ifelse(pred > 0.5, 1, 0), levels = c(0, 1))
+  test_data$MHealthConcern <- factor(test_data$MHealthConcern, levels = c(0, 1))
+  conf <- table(Predicted = pred_class, Actual = test_data$MHealthConcern)
+  
+  return(list(rmse = rmse, confusion_matrix = conf))
+}
+
+get_model_metrics <- function(model, test_data, target_column) {
+  predictions <- predict(model, newdata = test_data, type = "response")
+  predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+  conf_matrix <- table(Predicted = predicted_classes, Actual = test_data$MHealthConcern)
+  
+  # Calculate metrics using the previously defined function
+  metrics_df <- calculate_metrics(conf_matrix)
+  return(metrics_df)
+}
+```
+
+```{r defineModels, include=FALSE}
+## Define Models ##
+
+# Neighborhood / Activities / Support Model | Model1
+model1 <- "MHealthConcern ~ HHCOUNT+PHYSACTIV+K8Q35+mentor_22+ShareIdeas_22+
+          ScreenTime_22+ACE4ctCom_22+AftSchAct_22+NbhdSupp_22+NbhdSafe_22"
+model1_filter <- c("MHealthConcern", "HHCOUNT", "PHYSACTIV", "K8Q35", "mentor_22", "ShareIdeas_22",
+                   "ScreenTime_22", "ACE4ctCom_22", "AftSchAct_22", "NbhdSupp_22", "NbhdSafe_22")
+
+# Family / History Model | Model2
+model2 <- "MHealthConcern ~ BORNUSA+ACE12+SC_AGE_YEARS+sex_22+MotherMH_22+FatherMH_22+SC_RACE_R+
+          EventPart_22+mentor_22+ACE6ctHH_22+FAMILY_R"
+model2_filter <- c("MHealthConcern", "BORNUSA", "ACE12", "ACE11", "K10Q40_R",
+                   "age3_22", "sex_22", "MotherMH_22", "FatherMH_22", "SC_RACE_R",
+                   "EventPart_22", "mentor_22", "ACE2more11_22", "ACE6ctHH_22")
+
+# Adverse Events / Friends Model | Model3
+model3 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+
+          SC_AGE_YEARS+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
+          EventPart_22+mentor_22+ShareIdeas_22"
+model3_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11",
+                     "age3_22", "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22",
+                     "EventPart_22", "mentor_22", "ShareIdeas_22")
+
+# Combined Model | Model4
+model4 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+PHYSACTIV+
+          SC_AGE_YEARS*sex_22+MotherMH_22*FatherMH_22+ScreenTime_22+
+          ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
+          EventPart_22+mentor_22*ShareIdeas_22+ACE6ctHH_22+
+          NbhdSupp_22+NbhdSafe_22+FAMILY_R"
+model4_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", 
+                   "PHYSACTIV", "SC_AGE_YEARS", "sex_22", "MotherMH_22", 
+                   "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
+                   "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
+                   "EventPart_22", "mentor_22", "ShareIdeas_22", 
+                   "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
+
+# Final Model
+final_model <- "MHealthConcern ~ SC_AGE_YEARS * sex_22 * SC_RACE_R + PHYSACTIV *
+                                 AftSchAct_22 * ACEct11_22  + ACE4ctCom_22 +
+                                 MotherMH_22 * FatherMH_22 + FAMILY_R + HHCOUNT + bullied_22 + ACE12 + 
+                                 ShareIdeas_22 + mentor_22"
+
+# Factor Variables
+factor_Variables <- c("MHealthConcern", "BORNUSA", "K8Q35", "ACE12", 
+                      "PHYSACTIV", "sex_22", "MotherMH_22",  
+                      "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
+                      "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
+                      "EventPart_22", "mentor_22", "ShareIdeas_22", 
+                      "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
+```
+
+
+# Abstract
+
+## AI Aknowledgement
+
+This research utilized Claude 3.7 Sonnet, a large language model developed by Anthropic. Claude was prompted with the initial parameters of the research including the Abstract, Study Design, and Results. Claude assisted in adding visualization recommendations, and was used as a tool to debug code. As a powerful language model, Claude assisted in manuscript structuring and text synthesization, acting as an editor to written text and synthesized complex information into coherent text narratives; these narratives were not directly utilized but provided input into the written text via the author's own interpretation.
+
+The author carefully reviewed and validated all AI contributions to ensure scientific accuracy. All analyses, interpretations, and conclusions represent the author's independent judgment and responsibility.
+
+\newpage
+# Background
+
+# Study Design
+
+# Statistical Analysis
+
+# Results
+
+# Discussion
+
+# Conclusion
+
+# References
+
+<div id="ref1"></div>
+
+[**[#]**]. Fredricks, J. A., & Eccles, J. S. (2006). Is extracurricular participation associated with beneficial outcomes? Concurrent and longitudinal relations. Developmental Psychology, 42(4), 698–713. https://doi.org/10.1037/0012-1649.42.4.698
+
+<div id="ref2"></div>
+
+[**[#]**]. Loades, M. E., Chatburn, E., Higson-Sweeney, N., Reynolds, S., Shafran, R., Brigden, A., Linney, C., McManus, M. N., Borwick, C., & Crawley, E. (2020). Rapid Systematic Review: The Impact of Social Isolation and Loneliness on the Mental Health of Children and Adolescents in the Context of COVID-19. Journal of the American Academy of Child and Adolescent Psychiatry, 59(11), 1218–1239.e3. https://doi.org/10.1016/j.jaac.2020.05.009
+
+<div id="ref3"></div>
+
+[**[#]**]. 
+
+
+
+\newpage
+# Supportting Code & Resources
+
+## Github Project
+The complete project results and supporting code can be found [**linked here at github**]().
+
+### Data Files
+- 
+
+## Scripts
+The end to end script can be [**referenced here at the github project**]().
+
+## R Packages and Versions
+
+- RColorBrewer | Version 1.1.3
+- ggplot2 | Version 3.5.2
+- readxl | Version 1.4.5
+- tibble | Version 3.2.1
+- dplyr | Version 1.1.4
+- tidyverse | Version 2.0.0
+- writexl | Version 1.5.4
+- knitr | Version 1.50
+- png | Version 0.1-8
+- tinytex | Version 0.57
+- imager | Version 1.0.3
+- bookdown | Version 0.43
+- ROCR | Version 1.0-11
+- randomForest | Version 4.7-1.2
+- gridExtra | Version 2.3
+- caret | Version 7.0-1
+- mlbench | Version 2.1-6
+- kableExtra | Version 1.4.0
+- neuralnet | Version 1.44.2
+- naivebayes | Version 1.0.0
+- tidyr | Version 1.3.1
+- fastDummies | Version 1.7.5
+
+# AI Acknowledgement
+
+# Tables & Figures
+
+<div id="fig1"></div>

@@ -42,7 +42,7 @@ library(pROC)
 library(gbm)
 
 # Set Working Directory ----
-setwd("~/Documents/BINF620/BINF620-R Projects/Final Project/binf620_FinalProject - Delivered")
+setwd("~/Documents/BINF620/BINF620-R Projects/Final Project/binf620_FinalProject-Delivered")
 
 # Set Seed
 set.seed(1776)
@@ -129,9 +129,14 @@ if(FALSE){
 }
 
 ## Load Pre-saved R Data ----
-load("currData_NSCH.RData")
-load("modelData_NSCH.RData")
-load("imputed_NSCH.RData") # Ensure that this data is in your working directory
+load("Data/currData_NSCH.RData")
+load("Data/imputed_NSCH.RData") # Ensure that this data is in your working directory
+
+# Filter Data
+currData <- currData %>% 
+  filter(age3_22 %in% c(2, 3))
+
+currData <- currData[!apply(currData == 99, 1, any), ]
 
 
 # Data Preparation ####
@@ -180,7 +185,7 @@ if(FALSE){
   imputed_data <- complete(imputation_model, 1)
   
   # Save imputed data
-  save(imputed_data, file = "imputed_NSCH.RData")
+  save(imputed_data, file = "Data/imputed_NSCH.RData")
 }
 
 
@@ -360,49 +365,63 @@ text(0.7, 0.3, paste("AUC =", round(auc(roc_gbm), 3)), col="red")
 # For social connectedness & after-school activities, create simpler models
 # that are less likely to have separation issues
 
-# Model 1: After-school activities and physical activity
-activity_model <- glm(MHealthConcern ~ AftSchAct_22 + PHYSACTIV,
-                      family = binomial(link = "logit"), 
-                      data = imputed_data)
-summary(activity_model)
+# Model 1: Individual-level factors
+model_1_individual <- glm(MHealthConcern ~ SC_AGE_YEARS + sex_22 + SC_RACE_R + PHYSACTIV + ScreenTime_22 + age3_22, 
+                          data = imputed_data, family = binomial())
 
-# Model 2: Social connection indicators
-social_model <- glm(MHealthConcern ~ mentor_22 + ShareIdeas_22 + EventPart_22,
-                    family = binomial(link = "logit"), 
-                    data = imputed_data)
-summary(social_model)
+# Model 2: Social and family environment factors  
+model_2_social_family <- glm(MHealthConcern ~ FAMILY_R + AftSchAct_22 + EventPart_22 + mentor_22 + ShareIdeas_22, 
+                             data = imputed_data, family = binomial())
 
-# Model 3: Demographic factors
-demographic_model <- glm(MHealthConcern ~ sex_22 + SC_AGE_YEARS + SC_RACE_R,
-                         family = binomial(link = "logit"), 
-                         data = imputed_data)
-summary(demographic_model)
+# Model 3: Neighborhood factors
+model_3_neighborhood <- glm(MHealthConcern ~ NbhdSafe_22 + NbhdSupp_22 + ACE4ctCom_22, 
+                            data = imputed_data, family = binomial())
 
-# Model 4: Adverse experiences
-adverse_model <- glm(MHealthConcern ~ bullied_22 + ACE12,
-                     family = binomial(link = "logit"), 
-                     data = imputed_data)
-summary(adverse_model)
+# Model 4: Adverse experience factors
+model_4_adverse_exp <- glm(MHealthConcern ~ bully_22 + bullied_22 + ACEct11_22 + ACE12 + ACE6ctHH_22, 
+                           data = imputed_data, family = binomial())
+
+# Model 5: Parental mental health factors
+model_5_parental_mh <- glm(MHealthConcern ~ MotherMH_22 + FatherMH_22, 
+                           data = imputed_data, family = binomial())
+
+# Model 6: School engagement factors
+model_6_school_engage <- glm(MHealthConcern ~ K8Q35, 
+                             data = imputed_data, family = binomial())
+
+summary(model_1_individual)
+summary(model_2_social_family)
+summary(model_3_neighborhood)
+summary(model_4_adverse_exp)
+summary(model_5_parental_mh)
+summary(model_6_school_engage)
 
 # Calculate odds ratios for each model
-or_activity <- exp(cbind(OR = coef(activity_model), confint(activity_model)))
-or_social <- exp(cbind(OR = coef(social_model), confint(social_model)))
-or_demographic <- exp(cbind(OR = coef(demographic_model), confint(demographic_model)))
-or_adverse <- exp(cbind(OR = coef(adverse_model), confint(adverse_model)))
+or_individual <- exp(cbind(OR = coef(model_1_individual), confint(model_1_individual)))
+or_social_family <- exp(cbind(OR = coef(model_2_social_family), confint(model_2_social_family)))
+or_neighborhood <- exp(cbind(OR = coef(model_3_neighborhood), confint(model_3_neighborhood)))
+or_adverse_exp <- exp(cbind(OR = coef(model_4_adverse_exp), confint(model_4_adverse_exp)))
+or_parental_mh <- exp(cbind(OR = coef(model_5_parental_mh), confint(model_5_parental_mh)))
+or_school_engage <- exp(cbind(OR = coef(model_6_school_engage), confint(model_6_school_engage)))
 
 # Print odds ratios
-print("Odds Ratios for Activity Model:")
-print(or_activity)
-print("Odds Ratios for Social Connection Model:")
-print(or_social)
-print("Odds Ratios for Demographic Model:")
-print(or_demographic)
-print("Odds Ratios for Adverse Experiences Model:")
-print(or_adverse)
+print("Odds Ratios for Individual-level Model:")
+print(or_individual)
+print("Odds Ratios for Social and Family Environment Model:")
+print(or_social_family)
+print("Odds Ratios for Neighborhood Model:")
+print(or_neighborhood)
+print("Odds Ratios for Adverse Experience Model:")
+print(or_adverse_exp)
+print("Odds Ratios for Parental Mental Health Model:")
+print(or_parental_mh)
+print("Odds Ratios for School Engagement Model:")
+print(or_school_engage)
 
 # Compare model performance
-models <- list(activity_model, social_model, demographic_model, adverse_model)
-model_names <- c("Activity", "Social", "Demographic", "Adverse")
+models <- list(model_1_individual, model_2_social_family, model_3_neighborhood, 
+               model_4_adverse_exp, model_5_parental_mh, model_6_school_engage)
+model_names <- c("Individual", "Social_Family", "Neighborhood", "Adverse_Exp", "Parental_MH", "School_Engage")
 
 auc_values <- numeric(length(models))
 for (i in 1:length(models)) {
@@ -416,10 +435,10 @@ model_comparison <- data.frame(
   AUC = auc_values,
   AIC = sapply(models, AIC)
 )
-
 print(model_comparison)
 
-# Create a bar chart comparing AUC values across simplified models
+# Create a bar chart comparing AUC values across all 6 models
+library(ggplot2)
 ggplot(model_comparison, aes(x = reorder(Model, AUC), y = AUC, fill = Model)) +
   geom_bar(stat = "identity") +
   geom_text(aes(label = round(AUC, 3)), vjust = -0.3, size = 3.5) +
@@ -519,7 +538,7 @@ gbm_importance_df <- data.frame(
 
 # Extract variable importance from regularized model
 # (Absolute value of coefficients, excluding intercept)
-reg_importance <- as.matrix(coef(reg_model))[-1, ]
+reg_importance <- as.matrix(coef(reg_model))[-1]
 reg_importance_df <- data.frame(
   Variable = rownames(reg_importance),
   Importance = abs(as.vector(reg_importance))

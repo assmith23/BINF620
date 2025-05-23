@@ -1,21 +1,13 @@
 ---
-title: Title
+title: "Title"
 author: "A Manning Smith"
 date: "May 23, 2025"
 output:
-  github_document:
-    includes:
-      in_header: header.md
-      before_body: doc_prefix.md
-      after_body: doc_suffix.md
-  bookdown::html_document2:
+  pdf_document:
+    latex_engine: xelatex
     number_sections: false
     toc: true
-    toc_float: true
-  html_document:
-    toc: true
-    df_print: paged
-  pdf_document: default
+    toc_depth: 2
 subtitle: "BINF620 - Final Report"
 ---
 
@@ -24,164 +16,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Load Libraries
 library(knitr)
-library(RColorBrewer)
-library(ggplot2)
-library(readxl)
-library(tibble)
-library(dplyr)
-library(tidyverse)
-library(writexl)
-library(png)
 library(tinytex)
-library(bookdown)
-library(ROCR)
-library(randomForest)
-library(gridExtra)
-library(caret)
-library(mlbench)
-library(kableExtra)
-library(neuralnet)
-library(naivebayes)
-library(tidyr)
-library(fastDummies)
 ```
 
-```{r dataSetup, include=FALSE}
-setwd("~/Documents/BINF620/BINF620-R Projects/Final Project/binf620_FinalProject - Delivered")
 
-# Load Filtered Data
-load("currData_NSCH.RData")
-load("modelData_NSCH.RData")
-```
-
-```{r functions, include=FALSE}
-## Functions ##
-getAccuracy_glm <- function(modelResults, type = "Binary") {
-  
-  accuracy = 0
-  
-  if (type == "Binary") {
-    pred_prob <- predict(modelResults, test_data, type = "response")
-    pred_binary <- ifelse(pred_prob > 0.5, 1, 0)
-    accuracy <- mean(pred_binary == test_data$MHealthConcern)
-  }
-  else {
-    pred <- predict(modelResults, test_data)
-    pred_rounded <- round(pred)
-    accuracy <- mean(pred_rounded == test_data$MHealthScore)
-  }
-  
-  return(accuracy)
-}
-
-calculate_metrics <- function(conf_matrix) {
-  
-  if (nrow(conf_matrix) < 2 || ncol(conf_matrix) < 2) {
-    conf_matrix <- matrix(c(conf_matrix, 0, 0), nrow = 2, ncol = 2, byrow = TRUE)
-    rownames(conf_matrix) <- c("0", "1")
-    colnames(conf_matrix) <- c("0", "1")
-  }
-  
-  TP <- conf_matrix["1", "1"]
-  TN <- conf_matrix["0", "0"]
-  FP <- conf_matrix["1", "0"]
-  FN <- conf_matrix["0", "1"]
-  
-  accuracy <- (TP + TN) / sum(conf_matrix)
-  sensitivity <- TP / (TP + FN)
-  specificity <- TN / (TN + FP)
-  FPR <- FP / (FP + TN)
-  
-  metrics <- list(
-    Accuracy = accuracy,
-    Sensitivity = sensitivity,
-    Specificity = specificity,
-    FPR = FPR)
-  
-  # Create a data frame for metrics
-  metrics_df <- data.frame(
-    Metric = c("Accuracy", "Sensitivity", "Specificity", "False Positive Rate (FPR)"),
-    Value = c(metrics$Accuracy, metrics$Sensitivity, metrics$Specificity, metrics$FPR))
-  
-  return(metrics_df)
-}
-
-rmse <- function(actual, predicted) {
-  sqrt(mean((actual - predicted)^2))
-}
-
-nn_stats <- function(nn, test_data) {
-  pred <- as.numeric(predict(nn, test_data))
-  rmse <- rmse(test_data$MHealthConcern, pred)
-  pred_class <- factor(ifelse(pred > 0.5, 1, 0), levels = c(0, 1))
-  test_data$MHealthConcern <- factor(test_data$MHealthConcern, levels = c(0, 1))
-  conf <- table(Predicted = pred_class, Actual = test_data$MHealthConcern)
-  
-  return(list(rmse = rmse, confusion_matrix = conf))
-}
-
-get_model_metrics <- function(model, test_data, target_column) {
-  predictions <- predict(model, newdata = test_data, type = "response")
-  predicted_classes <- ifelse(predictions > 0.5, 1, 0)
-  conf_matrix <- table(Predicted = predicted_classes, Actual = test_data$MHealthConcern)
-  
-  # Calculate metrics using the previously defined function
-  metrics_df <- calculate_metrics(conf_matrix)
-  return(metrics_df)
-}
-```
-
-```{r defineModels, include=FALSE}
-## Define Models ##
-
-# Neighborhood / Activities / Support Model | Model1
-model1 <- "MHealthConcern ~ HHCOUNT+PHYSACTIV+K8Q35+mentor_22+ShareIdeas_22+
-          ScreenTime_22+ACE4ctCom_22+AftSchAct_22+NbhdSupp_22+NbhdSafe_22"
-model1_filter <- c("MHealthConcern", "HHCOUNT", "PHYSACTIV", "K8Q35", "mentor_22", "ShareIdeas_22",
-                   "ScreenTime_22", "ACE4ctCom_22", "AftSchAct_22", "NbhdSupp_22", "NbhdSafe_22")
-
-# Family / History Model | Model2
-model2 <- "MHealthConcern ~ BORNUSA+ACE12+SC_AGE_YEARS+sex_22+MotherMH_22+FatherMH_22+SC_RACE_R+
-          EventPart_22+mentor_22+ACE6ctHH_22+FAMILY_R"
-model2_filter <- c("MHealthConcern", "BORNUSA", "ACE12", "ACE11", "K10Q40_R",
-                   "age3_22", "sex_22", "MotherMH_22", "FatherMH_22", "SC_RACE_R",
-                   "EventPart_22", "mentor_22", "ACE2more11_22", "ACE6ctHH_22")
-
-# Adverse Events / Friends Model | Model3
-model3 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+
-          SC_AGE_YEARS+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
-          EventPart_22+mentor_22+ShareIdeas_22"
-model3_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", "ACE11",
-                     "age3_22", "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22",
-                     "EventPart_22", "mentor_22", "ShareIdeas_22")
-
-# Combined Model | Model4
-model4 <- "MHealthConcern ~ HHCOUNT+BORNUSA+K8Q35+ACE12+PHYSACTIV+
-          SC_AGE_YEARS*sex_22+MotherMH_22*FatherMH_22+ScreenTime_22+
-          ACEct11_22+ACE4ctCom_22+SC_RACE_R+bully_22+bullied_22+AftSchAct_22+
-          EventPart_22+mentor_22*ShareIdeas_22+ACE6ctHH_22+
-          NbhdSupp_22+NbhdSafe_22+FAMILY_R"
-model4_filter <- c("MHealthConcern", "HHCOUNT", "BORNUSA", "K8Q35", "ACE12", 
-                   "PHYSACTIV", "SC_AGE_YEARS", "sex_22", "MotherMH_22", 
-                   "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
-                   "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
-                   "EventPart_22", "mentor_22", "ShareIdeas_22", 
-                   "ACE6ctHH_22", "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
-
-# Final Model
-final_model <- "MHealthConcern ~ SC_AGE_YEARS * sex_22 * SC_RACE_R + PHYSACTIV *
-                                 AftSchAct_22 * ACEct11_22  + ACE4ctCom_22 +
-                                 MotherMH_22 * FatherMH_22 + FAMILY_R + HHCOUNT + bullied_22 + ACE12 + 
-                                 ShareIdeas_22 + mentor_22"
-
-# Factor Variables
-factor_Variables <- c("MHealthConcern", "BORNUSA", "K8Q35", "ACE12", 
-                      "PHYSACTIV", "sex_22", "MotherMH_22",  
-                      "FatherMH_22", "ScreenTime_22", "ACEct11_22", "ACE4ctCom_22", 
-                      "SC_RACE_R", "bully_22", "bullied_22", "AftSchAct_22", 
-                      "EventPart_22", "mentor_22", "ShareIdeas_22", 
-                      "NbhdSupp_22", "NbhdSafe_22", "FAMILY_R")
-```
 
 
 # Abstract
@@ -195,16 +33,183 @@ The author carefully reviewed and validated all AI contributions to ensure scien
 \newpage
 # Background
 
+\newpage
 # Study Design
+This study aimed to examine the relationships influencing mental health concerns among youth aged 6-17 years. The primary aim was to identify and quantify the interaction of individual, family, and social factors and the association with mental health concerns in children and adolescents, utilizing both traditional statistical approaches and advanced machine learning methodologies.
 
+## Aims
+1. To determine the relative importance of different risk factors being: individual characteristics, family environment, social connections, adverse experiences, and neighborhood factors, in predicting mental health outcomes.
+
+2. To evaluate the predictive performance of various analytical approaches, including logistic regression, regularized regression, ensemble methods, and principal component analysis-based models.
+
+3. To examine interaction between various social factors being: after school activities, bullying, and neighborhood support in predicting mental health concerns.
+
+4. To identify the most influential set of predictors that can effectively classify mental health risk.
+
+## Population Selection
+
+### Target Population
+The study population consisted of children and adolescents aged 6-17 years participating in the 2022 NSCH. This age range was selected to capture the critical developmental period during which many mental health conditions first emerge and when social, academic, and family environmental factors become increasingly influential.
+
+### Sampleing
+The NSCH employs a complex probability sampling design to produce nationally representative estimates. The survey utilizes a two-sections :
+- Section 1: Four questions about the presence of children in the home
+- Section 2: Detailed questions on the demographics and health of children
+
+Survey results were taken as is and the following criteria was applied:
+- Children aged 6-17 years at the time of survey administration
+- Complete or sufficiently complete data on the primary outcome variable (mental health concerns)
+
+Following data cleaning, the analytical dataset comprised over 20,000 observations, ensuring adequate statistical power for complex modeling approaches and subgroup analyses. The large sample size enabled robust estimation of interaction effects and supported the implementation of data-intensive machine learning algorithms while maintaining sufficient sample size for model validation through train-test splitting procedures.
+
+## Data and Materials
+### Data Source
+This analysis utilized the 2022 National Survey of Children's Health (NSCH), conducted by the U.S. Census Bureau in partnership with the Health Resources and Services Administration's Maternal and Child Health Bureau. The NSCH is an annual cross-sectional survey designed to produce national and state-level estimates of child health and well-being across multiple domains.
+
+### Survey Design
+The survey is primarily a mail-based data collection survey with online and telephone completion options. The survey domains, examined in this research include:
+- Child health
+- Healthcare access
+- Family dynamics and support systems
+- Neighborhood characteristics
+- School engagement
+- Adverse childhood experiences
+
+### Dataset
+The final dataset was a subset from the `NSCH_2022e_Topical_CSV_CAHMI_DRCv2.csv`. The original data contained over 300 survey collection variables as well as over 200 calculated variables based on the provide codebook. In total, the codebook contains $579$ variables. An alternate version of the unaltered dataset can be found on [**census.gov**](https://www.census.gov/programs-surveys/nsch/data/datasets/nsch2022.html). 
+
+A smaller subset of this data was created for the purposes of this research and can be found in the project github available in the resources[**[#]**](#github).
+
+#### Dataset Documentation
+Comprehensive variable documentation was utilized to provide details regarding the data for each factor. The Methodology Report includes details such as:
+- Response categories and value labels
+- Skip patterns and logical consistency rules
+- Data collection methodology for each survey module
+
+The complete data dictionary with variable definitions and descriptions was utilized via the [**NSCH Codebook**](https://www.census.gov/data-tools/demo/uccb/nschdict). An amended version of the variable dictionary, comprised of all the variables used in the research analysis, can be found in 7[**resources**](#Resources).
+
+\newpage
 # Statistical Analysis
+The study employed a comprehensive analytical approach combining traditional statistical methods with advanced machine learning techniques to examine predictors of mental health concerns among adolescents.
 
+## Reproducibility
+Analysis code was version-controlled and documented to ensure reproducibility. A Random seed was set a `seed = 1776` for all stochastic procedures to enable exact replication of results.
+
+## Response Variable
+The primary outcome variable was mental health concerns `MHealthConcern`, constructed as a binary indicator based on responses to survey questions regarding current mental health conditions. More specifically, the indicator to into account the variables `K2Q33B` and `K2Q32B`, indicating whether their child currently has depression or anxiety. If the response was "yes" to either condition, the resulting value was "yes".
+
+## Explanatory Variables (Risk Factors)
+A total of 22 predictor variables were selected based on theoretical relevance, personal experience, and previous literature. There are 6 main factors that group the predictors: individual-level factors, social and family factors, neighborhood factors, adverse experience factors, parental mental health factors, and school engagement factors.
+
+**Individual-level factors:**\
+- child's age `SC_AGE_YEARS`\
+- sex `sex_22`\
+- race/ethnicity `SC_RACE_R`\
+- physical activity level `PHYSACTIV`\
+- screen time usage `ScreenTime_22`\
+- age group category ``age3_22`\
+
+**Social and family environment factors:**\
+- household composition `FAMILY_R`\
+- after-school activity participation `AftSchAct_22`\
+- event participation `EventPart_22`\
+- mentor availability `mentor_22`\
+- ability to share ideas with family `ShareIdeas_22`\
+
+**Neighborhood factors:**\
+- neighborhood safety `NbhdSafe_22`\
+- neighborhood support `NbhdSupp_22`\
+- community-level ACEs `ACE4ctCom_22`\
+
+**Adverse experience factors:**\
+- bullying `bully_22`\
+- victim of bullying `bullied_22`\
+- adverse childhood experiences count `ACEct11_22`\
+- discrimination experiences `ACE12`\
+- household adverse experiences `ACE6ctHH_22`\
+
+**Parental mental health factors:**\
+- mother's mental health status `MotherMH_22`\
+- father's mental health status `FatherMH_22`\
+
+**School engagement factors:**\
+- school connection measure `K8Q35`\
+
+## Data Processing
+### Missing Data Imputation
+Missing data were addressed using Multiple Imputation by Chained Equations (MICE) implemented in R. The imputation model utilized predictive mean matching (PMM) with 5 imputed datasets and 50 iterations to ensure convergence. Complete case analysis was performed on the imputed dataset to maintain statistical power while preserving the integrity of relationships between variables. This dataset was saved an utilized in python for PCA.
+
+### Data Scailing / Standardizing
+
+## Analytical Approaches
+Univariate and bivariate analyses were conducted to examine the distribution of mental health concerns across predictor variables. Proportional differences were visualized using grouped bar charts and cross-tabulations to identify preliminary associations.
+
+### Statistical Models
+#### Logistic Regression
+Multiple logistic regression models were fitted to examine associations between predictor variables and mental health outcomes. The six domain-specific models, described above, were developed to systematically examine different frameworks. 
+
+#### Regularized Logistic Regression
+To address potential multicollinearity and perform variable selection, elastic net regularization was implemented using the glmnet package. The optimal lambda parameter was selected through 5-fold cross-validation, with alpha = 0.5 to balance ridge and lasso penalties.
+
+##### Interaction Effects
+Two-way interactions were examined between key variables, specifically:
+- After-school activities × sex
+- Physical activity × after-school activities
+
+## Machine Learning Approaches
+### Random Forest Classification
+Random forest models were implemented using 500 trees with importance calculations enabled. The dataset was split into training (70%) and testing (30%) sets using stratified sampling to maintain outcome distribution balance.
+### Gradient Boosting Machine
+GBM models were fitted with 500 trees, interaction depth of 3, and shrinkage parameter of 0.05. Optimal tree count was determined using out-of-bag error estimation.
+
+## Principal Component Analysis (PCA)
+PCA was performed on standardized predictor variables to identify underlying latent constructs and reduce dimensionality while preserving maximum variance. The optimal number of components was determined using multiple criteria:
+
+- Kaiser criterion (eigenvalues > 1)
+- Cumulative variance explained (80% threshold)
+- Scree plot examination for elbow identification
+
+### Componet Analysis
+Principal component loadings were examined to understand the contribution of original variables to each component, with visualization through heatmaps to identify variable clustering patterns.
+
+### PCA Modeling
+Logistic regression and random forest models were fitted using the selected principal components as predictors to compare performance with original variable models.
+
+## Model Evaluation
+### Performance Metrics
+Model performance was evaluated using various metrics for binary classification:
+
+- Area Under the ROC Curve (AUC): Primary metric for model discrimination ability
+- Accuracy: Overall correct classification rate
+- Sensitivity (Recall): True positive rate
+- Specificity: True negative rate
+- Precision: Positive predictive value
+
+### Model Comparison
+Models were compared using Area Under the ROC Curve (AUC) as the primary performance metric, with additional evaluation using accuracy, sensitivity, specificity, and precision. ROC curve analysis was employed to assess model discrimination ability and compare performance across different analytical approaches.
+
+### Variable Importance
+## Analysis Environments
+All analyses were conducted using R version 4.x and Python 3.x. Key R packages included: mice (imputation), glmnet (regularized regression), randomForest, gbm, caret (model training), and pROC (ROC analysis). Python analyses utilized scikit-learn, pandas, and numpy libraries.
+
+Statistical significance was set at α = 0.05 for all tests, with 95% confidence intervals reported for odds ratios and effect estimates.
+
+The full list of packages and version can be found in the [**supporting code and resources**](#support) section.
+
+
+\newpage
 # Results
 
+
+\newpage
 # Discussion
 
+
+\newpage
 # Conclusion
 
+
+\newpage
 # References
 
 <div id="ref1"></div>
@@ -223,6 +228,8 @@ The author carefully reviewed and validated all AI contributions to ensure scien
 
 \newpage
 # Supportting Code & Resources
+
+<div id="support"></div>
 
 ## Github Project
 The complete project results and supporting code can be found [**linked here at github**]().
@@ -257,6 +264,16 @@ The end to end script can be [**referenced here at the github project**]().
 - naivebayes | Version 1.0.0
 - tidyr | Version 1.3.1
 - fastDummies | Version 1.7.5
+- mice | Version 3.17.0
+- corrplot | version 0.95
+- car | Version 3.1-3
+- glmnet | version 4.1-8
+- MASS | version 7.3-65
+- pROC | version 1.18.5
+- gbm | Version 2.2.2
+
+## Python Packages
+The complete list of required python packages can be installed with the same version via the `requirements.txt` in the data folder.
 
 # AI Acknowledgement
 

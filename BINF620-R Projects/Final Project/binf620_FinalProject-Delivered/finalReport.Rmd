@@ -32,6 +32,34 @@ The author carefully reviewed and validated all AI contributions to ensure scien
 
 \newpage
 # Background
+Mental health concerns among children and adolescents represent one of the most pressing public health challenges of the 21st century, with profound implications for individual development, family functioning, and societal well-being. Globally, approximately 1 in 7 youth experience a diagnosable mental health disorder, and higher rates are presented in the United States (WHO, 2023a). This study employs a comprehensive analytical approach to examine how these multilevel factors interact to influence mental health outcomes among youth aged 6-17 years, with the aim of identifying key predictors and potential points of intervention that could meaningfully impact the trajectory of youth mental health.
+
+## Mental Health Concerns
+The adolescent period represents a critical developmental window for mental health, with the World Health Organization noting that half of all mental health disorders in adulthood begin by age 18, though most cases remain undetected and untreated [**[#]**](#link1). Mental health conditions account for 16% of the global burden of disease and injury among adolescents, with depression, anxiety, and behavioral disorders among the leading causes of illness and disability in this population [**[#]**](#link2). The growing prevalence of these conditions underscores the importance of identifying risk factors that can inform early intervention and prevention strategies. Furthermore, other studies suggest the assocation between social withdraw and mental health, suggesting a reverse interaction that thoes more involved in social frameworks may have a positive impact on an individual's mental health [**[#]**](#ref3).
+
+### Social Media Effects
+
+## Risk Factors
+Current research emphasizes that adolescent mental health is influenced by a complex interplay of factors operating at multiple levels. These factors do not operate in isolation but rather "interact and are closely interconnected, directly or indirectly contributing to adolescent psychopathology"[**[#]**](#ref4).
+
+### Individual Risk Factors
+Individual characteristics such as age, sex, race/ethnicity, physical activity levels, and screen time usage have been identified as significant predictors of mental health outcomes. Studies have found that "rates of increase in depression are higher for girls than for boys; the same is true for rates of overanxious disorder" [**[#]**](#ref5). These findings support the inclusion of demographic and behavioral variables in predictive models of adolescent mental health.
+
+### Family Dynamics Factors
+The family environment and family history play a crucial role in shaping adolescent mental health outcomes. Family structure, parental mental health, and the quality of family relationships significantly impact youth development, with research emphasizing that "parents' interactions with their children are among the strongest proximal predictors of children's neurodevelopment" and that "the family environment, with all its complexity and diverse components, plays a critical role in shaping neurodevelopmental outcomes in children" (Petrowski et al., 2020).
+
+### Family and Social Factors
+Social connections and peer relationships represent another critical domain influencing adolescent mental health. The WHO notes that "factors that can contribute to stress during adolescence include exposure to adversity, pressure to conform with peers and exploration of identity" (WHO, 2023a). This study examines variables related to after-school activities, event participation, and mentorship to assess their protective or risk effects on mental health outcomes.
+
+### Neighborhood Factors
+The broader social environment, including neighborhood safety and support, significantly influences adolescent mental health. "Some adolescents are at greater risk of mental health conditions due to their living conditions, stigma, discrimination or exclusion, or lack of access to quality support and services" [**[L#]**](https://www.who.int/news-room/fact-sheets/detail/adolescent-mental-health). This study examines neighborhood safety, support, and community-level adverse childhood experiences to assess their impact on youth mental health outcomes.
+
+### Adverse Experiences
+Exposure to adverse experiences represents a significant risk factor for poor mental health outcomes. "Violence (especially sexual violence and bullying), harsh parenting and severe socioeconomic problems are recognized risks to mental health" (WHO, 2023a). This study incorporates measures of bullying, victimization, adverse childhood experiences, discrimination, and household adversities to comprehensively assess the impact of negative experiences on youth mental health.
+
+## Study Approach
+Given the complex and multifaceted nature of factors influencing adolescent mental health, this study employs both traditional statistical approaches and advanced machine learning methodologies to identify key predictors and their interactions. By examining the relative importance of different risk factors, evaluating the predictive performance of various analytical approaches, and identifying interactions between social factors, this study aims to contribute to a more nuanced understanding of the determinants of mental health concerns in children and adolescents. The findings will inform targeted intervention strategies that address the most influential risk factors and leverage protective factors to promote positive mental health outcomes in this vulnerable population.
+
 
 \newpage
 # Study Design
@@ -212,17 +240,38 @@ The full list of packages and version can be found in the [**supporting code and
 \newpage
 # References
 
+<div id="link1"></div>
+
+[**[#]**]. World Health Organization. (2024). https://www.who.int/news-room/fact-sheets/detail/adolescent-mental-health
+
+<div id="link2"></div>
+
+[**[#]**]. World Health Organization. (2024). https://www.who.int/news-room/fact-sheets/detail/adolescents-health-risks-and-solutions/
+
+<div id="ref3"></div>
+
+[**[#]**]. Birrell, L., Werner-Seidler, A., Davidson, L., Andrews, J. L., & Slade, T. (2025). Social connection as a key target for youth mental health. Mental Health & Prevention, 37, 200395. https://doi.org/10.1016/j.mhp.2025.200395
+
 <div id="ref1"></div>
 
 [**[#]**]. Fredricks, J. A., & Eccles, J. S. (2006). Is extracurricular participation associated with beneficial outcomes? Concurrent and longitudinal relations. Developmental Psychology, 42(4), 698–713. https://doi.org/10.1037/0012-1649.42.4.698
+
+<div id="ref5"></div>
+
+[**[#]**]. Institute of Medicine and National Research Council. (2011). The Science of Adolescent Risk-Taking: Workshop Report. National Academies Press.
+
+<div id="ref4"></div>
+
+[**[#]**]. Lin, J., & Guo, W. (2024). The Research on Risk Factors for Adolescents' Mental Health. Behavioral sciences (Basel, Switzerland), 14(4), 263. https://doi.org/10.3390/bs14040263
 
 <div id="ref2"></div>
 
 [**[#]**]. Loades, M. E., Chatburn, E., Higson-Sweeney, N., Reynolds, S., Shafran, R., Brigden, A., Linney, C., McManus, M. N., Borwick, C., & Crawley, E. (2020). Rapid Systematic Review: The Impact of Social Isolation and Loneliness on the Mental Health of Children and Adolescents in the Context of COVID-19. Journal of the American Academy of Child and Adolescent Psychiatry, 59(11), 1218–1239.e3. https://doi.org/10.1016/j.jaac.2020.05.009
 
-<div id="ref3"></div>
 
-[**[#]**]. 
+
+
+
 
 
 

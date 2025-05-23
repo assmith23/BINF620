@@ -37,6 +37,8 @@ Mental health concerns among children and adolescents represent one of the most 
 ## Mental Health Concerns
 The adolescent period represents a critical developmental window for mental health, with the World Health Organization noting that half of all mental health disorders in adulthood begin by age 18, though most cases remain undetected and untreated [**[#]**](#link1). Mental health conditions account for 16% of the global burden of disease and injury among adolescents, with depression, anxiety, and behavioral disorders among the leading causes of illness and disability in this population [**[#]**](#link2). The growing prevalence of these conditions underscores the importance of identifying risk factors that can inform early intervention and prevention strategies. Furthermore, other studies suggest the assocation between social withdraw and mental health, suggesting a reverse interaction that thoes more involved in social frameworks may have a positive impact on an individual's mental health [**[#]**](#ref3).
 
+The COVID-19 pandemic has further exacerbated these concerns, with emergency department visits for mental health crises increasing by 24% for children aged 5-11 and 31% for adolescents aged 12-17 during 2020 compared to 2019 [**[#]**](#ref7). These statistics underscore the critical importance of identifying key risk and protective factors to inform targeted interventions for this vulnerable population.
+
 ### Social Media Effects
 
 ## Risk Factors
@@ -46,13 +48,13 @@ Current research emphasizes that adolescent mental health is influenced by a com
 Individual characteristics such as age, sex, race/ethnicity, physical activity levels, and screen time usage have been identified as significant predictors of mental health outcomes. Studies have found that "rates of increase in depression are higher for girls than for boys; the same is true for rates of overanxious disorder" [**[#]**](#ref5). These findings support the inclusion of demographic and behavioral variables in predictive models of adolescent mental health.
 
 ### Family Dynamics Factors
-The family environment and family history play a crucial role in shaping adolescent mental health outcomes. Family structure, parental mental health, and the quality of family relationships significantly impact youth development, with research emphasizing that "parents' interactions with their children are among the strongest proximal predictors of children's neurodevelopment" and that "the family environment, with all its complexity and diverse components, plays a critical role in shaping neurodevelopmental outcomes in children" (Petrowski et al., 2020).
+The family environment and family history play a crucial role in shaping adolescent mental health outcomes. Family structure, parental mental health, and the quality of family relationships significantly impact youth development, with research emphasizing that "parents' interactions with their children are among the strongest proximal predictors of children's neurodevelopment" and that "the family environment, with all its complexity and diverse components, plays a critical role in shaping neurodevelopmental outcomes in children" [**[#]**](#ref6).
 
 ### Family and Social Factors
 Social connections and peer relationships represent another critical domain influencing adolescent mental health. The WHO notes that "factors that can contribute to stress during adolescence include exposure to adversity, pressure to conform with peers and exploration of identity" (WHO, 2023a). This study examines variables related to after-school activities, event participation, and mentorship to assess their protective or risk effects on mental health outcomes.
 
 ### Neighborhood Factors
-The broader social environment, including neighborhood safety and support, significantly influences adolescent mental health. "Some adolescents are at greater risk of mental health conditions due to their living conditions, stigma, discrimination or exclusion, or lack of access to quality support and services" [**[L#]**](https://www.who.int/news-room/fact-sheets/detail/adolescent-mental-health). This study examines neighborhood safety, support, and community-level adverse childhood experiences to assess their impact on youth mental health outcomes.
+The broader social environment, including neighborhood safety and support, significantly influences adolescent mental health. "Some adolescents are at greater risk of mental health conditions due to their living conditions, stigma, discrimination or exclusion, or lack of access to quality support and services" [**[#]**](#link1). This study examines neighborhood safety, support, and community-level adverse childhood experiences to assess their impact on youth mental health outcomes.
 
 ### Adverse Experiences
 Exposure to adverse experiences represents a significant risk factor for poor mental health outcomes. "Violence (especially sexual violence and bullying), harsh parenting and severe socioeconomic problems are recognized risks to mental health" (WHO, 2023a). This study incorporates measures of bullying, victimization, adverse childhood experiences, discrimination, and household adversities to comprehensively assess the impact of negative experiences on youth mental health.
@@ -104,7 +106,7 @@ The survey is primarily a mail-based data collection survey with online and tele
 - Adverse childhood experiences
 
 ### Dataset
-The final dataset was a subset from the `NSCH_2022e_Topical_CSV_CAHMI_DRCv2.csv`. The original data contained over 300 survey collection variables as well as over 200 calculated variables based on the provide codebook. In total, the codebook contains $579$ variables. An alternate version of the unaltered dataset can be found on [**census.gov**](https://www.census.gov/programs-surveys/nsch/data/datasets/nsch2022.html). 
+The final dataset was a subset from the `NSCH_2022e_Topical_CSV_CAHMI_DRCv2.csv`. The original data contained over 300 survey collection variables as well as over 200 calculated variables based on the provide codebook. In total, the codebook contains $579$ variables. An alternate version of the unaltered dataset can be found on [**census.gov**](#link3). 
 
 A smaller subset of this data was created for the purposes of this research and can be found in the project github available in the resources[**[#]**](#github).
 
@@ -114,7 +116,7 @@ Comprehensive variable documentation was utilized to provide details regarding t
 - Skip patterns and logical consistency rules
 - Data collection methodology for each survey module
 
-The complete data dictionary with variable definitions and descriptions was utilized via the [**NSCH Codebook**](https://www.census.gov/data-tools/demo/uccb/nschdict). An amended version of the variable dictionary, comprised of all the variables used in the research analysis, can be found in 7[**resources**](#Resources).
+The complete data dictionary with variable definitions and descriptions was utilized via the [**NSCH Codebook**](#link4). An amended version of the variable dictionary, comprised of all the variables used in the research analysis, can be found in 7[**resources**](#Resources).
 
 \newpage
 # Statistical Analysis
@@ -248,9 +250,21 @@ The full list of packages and version can be found in the [**supporting code and
 
 [**[#]**]. World Health Organization. (2024). https://www.who.int/news-room/fact-sheets/detail/adolescents-health-risks-and-solutions/
 
+<div id="link3"></div>
+
+[**[#]**]. https://www.census.gov/programs-surveys/nsch/data/datasets/nsch2022.html
+
+<div id="link4"></div>
+
+[**[#]**]. https://www.census.gov/data-tools/demo/uccb/nschdict
+
 <div id="ref3"></div>
 
 [**[#]**]. Birrell, L., Werner-Seidler, A., Davidson, L., Andrews, J. L., & Slade, T. (2025). Social connection as a key target for youth mental health. Mental Health & Prevention, 37, 200395. https://doi.org/10.1016/j.mhp.2025.200395
+
+<div id="ref6"></div>
+
+[**[#]**]. Bush, N. R., Wakschlag, L. S., LeWinn, K. Z., Hertz-Picciotto, I., Nozadi, S. S., Pieper, S., Lewis, J., Biezonski, D., Blair, C., Deardorff, J., Neiderhiser, J. M., Leve, L. D., Elliott, A. J., Duarte, C. S., Lugo-Candelas, C., O'Shea, T. M., Avalos, L. A., Page, G. P., & Posner, J. (2020). Family Environment, Neurodevelopmental Risk, and the Environmental Influences on Child Health Outcomes (ECHO) Initiative: Looking Back and Moving Forward. Frontiers in psychiatry, 11, 547. https://doi.org/10.3389/fpsyt.2020.00547
 
 <div id="ref1"></div>
 
@@ -259,6 +273,10 @@ The full list of packages and version can be found in the [**supporting code and
 <div id="ref5"></div>
 
 [**[#]**]. Institute of Medicine and National Research Council. (2011). The Science of Adolescent Risk-Taking: Workshop Report. National Academies Press.
+
+<div id="ref7"></div>
+
+[**[#]**]. Leeb RT, Bitsko RH, Radhakrishnan L, Martinez P, Njai R, Holland KM. Mental Health–Related Emergency Department Visits Among Children Aged <18 Years During the COVID-19 Pandemic — United States, January 1–October 17, 2020. MMWR Morb Mortal Wkly Rep 2020;69:1675–1680. DOI: http://dx.doi.org/10.15585/mmwr.mm6945a3
 
 <div id="ref4"></div>
 
